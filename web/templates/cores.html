@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Coredumps{% endblock %}
+{% block content %}
+<h1>Coredumps</h1>
+
+<div class="card">
+    <form method="GET" action="{{ url_for('cores') }}">
+        <div class="filters">
+            <div>
+                <label>Device</label>
+                <select name="device">
+                    <option value="">All devices</option>
+                    {% for d in devices %}
+                    <option value="{{ d[0] }}" {% if f_device == d[0]|string %}selected{% endif %}>{{ d[1] }} ({{ d[2] }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>SW Revision</label>
+                <select name="sw_rev">
+                    <option value="">All revisions</option>
+                    {% for s in sw_revs %}
+                    <option value="{{ s[0] }}" {% if f_sw_rev == s[0] %}selected{% endif %}>{{ s[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Signal</label>
+                <select name="signal">
+                    <option value="">All signals</option>
+                    {% for s in signals %}
+                    <option value="{{ s[0] }}" {% if f_signal == s[0]|string %}selected{% endif %}>{{ signal_name(s[0]) }} ({{ s[0] }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Binary</label>
+                <select name="binary">
+                    <option value="">All binaries</option>
+                    {% for b in binaries %}
+                    <option value="{{ b[0] }}" {% if f_binary == b[0] %}selected{% endif %}>{{ b[0].split('/')[-1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit">Filter</button>
+                <a href="{{ url_for('cores') }}" style="margin-left: 8px; font-size: 13px;">Reset</a>
+            </div>
+        </div>
+        {% if f_process %}<input type="hidden" name="process" value="{{ f_process }}">{% endif %}
+        {% if f_bt_csum %}<input type="hidden" name="bt_csum" value="{{ f_bt_csum }}">{% endif %}
+        {% if f_bt_sig %}<input type="hidden" name="bt_sig" value="{{ f_bt_sig }}">{% endif %}
+    </form>
+    {% if f_process or f_bt_csum or f_bt_sig %}
+    <div style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 13px;">
+        <strong>Crash signature filter:</strong>
+        {% if f_process %}Process: <code>{{ f_process }}</code>{% endif %}
+        {% if f_bt_csum %}Backtrace: <code>{{ f_bt_csum[:16] }}...</code>{% endif %}
+        {% if f_bt_sig %}Pattern: <code>{{ f_bt_sig[:16] }}</code>{% endif %}
+        <a href="{{ url_for('cores', device=f_device, sw_rev=f_sw_rev, binary=f_binary, signal=f_signal) }}" style="margin-left: 12px;">Clear signature filter</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <p class="meta">{{ "{:,}".format(total_rows) }} coredumps | Page {{ page }} of {{ total_pages }}</p>
+    <div>
+        <table>
+            <thead>
+                <tr><th>ID</th><th>Date</th><th>Process</th><th>Binary</th><th>Signal</th><th>BT Checksum</th><th>Device</th><th>IP</th><th>SW Rev</th><th>Ticket</th></tr>
+            </thead>
+            <tbody>
+            {% for r in rows %}
+            {% set t = tickets.get(r[5]) %}
+            <tr{% if t %} style="background:#f0f4ff"{% endif %}>
+                <td><a href="{{ url_for('core_detail', core_id=r[0]) }}">#{{ r[0] }}</a></td>
+                <td style="white-space:nowrap">{{ r[4] }}</td>
+                <td>{{ r[1] }}</td>
+                <td class="truncate" title="{{ r[2] }}">{{ r[2].split('/')[-1] if r[2] else '' }}</td>
+                <td>
+                    <span class="signal-badge signal-{{ r[3] }}">{{ signal_name(r[3]) }} ({{ r[3] }})</span>
+                </td>
+                <td style="font-family:monospace; font-size:11px;">{{ r[5][:12] if r[5] else '' }}</td>
+                <td><a href="{{ url_for('cores', device=r[0]) }}">{{ r[6] or '' }}</a></td>
+                <td>{{ ip_badge(r[7]) | safe }}</td>
+                <td><a href="{{ url_for('cores', sw_rev=r[8]) }}">{{ rev_badge(r[8]) | safe }}</a></td>
+                <td>
+                {% if t %}
+                    {% set url = github_url(t.issue) %}
+                    {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#0d6efd;color:#fff;text-decoration:none">#{{ t.issue }}</a>{% else %}<span class="badge" style="background:#0d6efd;color:#fff">{{ t.issue }}</span>{% endif %}
+                {% elif r[5] %}
+                    <button class="btn btn-sm" style="background:#6c757d;font-size:11px;padding:2px 6px" onclick="openTicketForm(this,'{{ r[5] }}')">+ Mark</button>
+                {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% set base_qs = [] %}
+    {% if f_device %}{% set _ = base_qs.append("device=" ~ f_device) %}{% endif %}
+    {% if f_sw_rev %}{% set _ = base_qs.append("sw_rev=" ~ f_sw_rev) %}{% endif %}
+    {% if f_binary %}{% set _ = base_qs.append("binary=" ~ f_binary) %}{% endif %}
+    {% if f_signal %}{% set _ = base_qs.append("signal=" ~ f_signal) %}{% endif %}
+    {% if f_process %}{% set _ = base_qs.append("process=" ~ f_process) %}{% endif %}
+    {% if f_bt_csum %}{% set _ = base_qs.append("bt_csum=" ~ f_bt_csum) %}{% endif %}
+    {% if f_bt_sig %}{% set _ = base_qs.append("bt_sig=" ~ f_bt_sig) %}{% endif %}
+    {% set qs = "&".join(base_qs) %}
+    {% set sep = "&" if qs else "" %}
+
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&per_page={{ per_page }}{{ sep }}{{ qs }}">Prev</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <span class="active">{{ p }}</span>
+            {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
+            <a href="?page={{ p }}&per_page={{ per_page }}{{ sep }}{{ qs }}">{{ p }}</a>
+            {% elif p == 4 or p == total_pages - 3 %}
+            <span>...</span>
+            {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&per_page={{ per_page }}{{ sep }}{{ qs }}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openTicketForm(btn, btCsum) {
+    var td = btn.closest('td');
+    td.innerHTML = '<input type="text" placeholder="Issue # (e.g. 15884)" style="width:90px;font-size:11px" id="ti-issue-'+btCsum+'">'  
+        + ' <input type="text" placeholder="Note" style="width:110px;font-size:11px" id="ti-note-'+btCsum+'">'  
+        + ' <button class="btn btn-sm" style="font-size:11px" onclick="saveTicket(\''+btCsum+'\')">✓</button>'  
+        + ' <button class="btn btn-sm" style="background:#6c757d;font-size:11px" onclick="location.reload()">✕</button>';
+    document.getElementById('ti-issue-'+btCsum).focus();
+}
+function saveTicket(btCsum) {
+    var issue = document.getElementById('ti-issue-'+btCsum).value.trim();
+    var note  = (document.getElementById('ti-note-'+btCsum) || {}).value || '';
+    if (!issue) return;
+    var fd = new FormData(); fd.append('action','mark'); fd.append('bt_csum',btCsum); fd.append('issue',issue); fd.append('note',note);
+    fetch('{{ url_for("ticket_api") }}', {method:'POST',body:fd}).then(r=>r.json()).then(function(d){
+        if (d.error) { alert(d.error); return; }
+        location.reload();
+    }).catch(function(e){ alert('Save failed: '+e); });
+}
+</script>
+{% endblock %}

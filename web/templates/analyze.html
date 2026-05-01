@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Analyze - {{ rev }}{% endblock %}
+{% block content %}
+<h1>Crash Analysis</h1>
+
+<div class="card">
+    <form method="GET" action="{{ url_for('analyze') }}" id="analyze-form">
+        <div class="filters">
+            <div>
+                <label>SW Revision</label>
+                <select name="rev" id="rev-select">
+                    <option value="">-- Select Revision --</option>
+                    {% for s in sw_revs %}
+                    <option value="{{ s[0] }}" {% if rev == s[0] %}selected{% endif %}>{{ s[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Group By</label>
+                <select name="mode">
+                    <option value="service" {% if group_mode != 'stack' %}selected{% endif %}>Service</option>
+                    <option value="stack" {% if group_mode == 'stack' %}selected{% endif %}>Call Stack Similarity</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" id="analyze-btn">Analyze</button>
+            </div>
+        </div>
+    </form>
+    <div id="loading-indicator" style="display: none; margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 6px; text-align: center;">
+        <span class="spinner"></span>
+        <span style="margin-left: 10px; color: #666;">Analyzing crashes... This may take a moment.</span>
+    </div>
+    <style>
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #ddd; border-top-color: #3498db; border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</div>
+
+{% if group_mode == 'stack' and similarity_groups %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ "{:,}".format(total_crashes) }}</div>
+        <div class="label">Total Crashes</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ unique_types }}</div>
+        <div class="label">Unique Patterns</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ process_count }}</div>
+        <div class="label">Services Affected</div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 16px;">
+    <h2>Cross-Service Crash Patterns</h2>
+    <p class="meta">Crashes grouped by similar call stacks across different services</p>
+</div>
+
+{% for sg in similarity_groups %}
+<div class="card" style="margin-bottom: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div>
+            <span class="signal-badge signal-{{ sg.signal }}">{{ signal_name(sg.signal) }} ({{ sg.signal }})</span>
+            <strong style="margin-left: 8px; font-size: 20px;">{{ "{:,}".format(sg.cnt) }}</strong>
+            <span style="color: #888; margin-left: 4px;">crashes</span>
+            {% if sg.common_library %}
+            <span style="margin-left: 12px; padding: 2px 8px; background: #e8f4f8; border-radius: 4px; font-size: 12px; color: #2a6496;">
+                {{ sg.common_library }}
+            </span>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('cores', sw_rev=rev, signal=sg.signal, bt_sig=sg.lib_sig) }}" class="btn btn-sm">View All {{ "{:,}".format(sg.cnt) }} Crashes</a>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+            <strong>{{ sg.processes|length }}</strong> service{{ "s" if sg.processes|length != 1 }} affected:
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            {% for proc in sg.processes %}
+            <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-size: 12px;">{{ proc }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 24px; font-size: 12px; color: #888; margin-bottom: 8px;">
+        <span>Signature: <code>{{ sg.lib_sig[:16] }}</code></span>
+        <span>First: {{ sg.first_seen }}</span>
+        <span>Last: {{ sg.last_seen }}</span>
+    </div>
+
+    {% if sg.sample_id in bt_snippets and bt_snippets[sg.sample_id] %}
+    <pre style="font-size: 12px; padding: 10px; margin: 0;">{% for line in bt_snippets[sg.sample_id] %}{{ line }}
+{% endfor %}</pre>
+    {% set total = bt_frame_counts.get(sg.sample_id, 0) %}
+    {% set shown = bt_snippets[sg.sample_id]|length %}
+    {% if total > shown %}
+    <div style="font-size: 12px; color: #888; padding: 4px 10px; background: #f8f8f8; border-top: 1px solid #eee;">[{{ total - shown }} more frame{{ "s" if total - shown != 1 }}]</div>
+    {% endif %}
+    {% else %}
+    <p style="font-size: 12px; color: #aaa; margin: 0;">No backtrace available</p>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% elif processes %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ "{:,}".format(total_crashes) }}</div>
+        <div class="label">Total Crashes</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ unique_types }}</div>
+        <div class="label">Unique Crash Types</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ process_count }}</div>
+        <div class="label">Processes Affected</div>
+    </div>
+</div>
+
+{% for proc_name, proc_data in processes %}
+<div class="card">
+    <h2 class="process-header" data-target="proc-{{ loop.index }}" style="cursor: pointer;">
+        <span class="collapse-icon" id="icon-proc-{{ loop.index }}">&#9654;</span>
+        {{ proc_name }}
+        <span style="font-size: 13px; font-weight: normal; color: #888; margin-left: 8px;">
+            {{ "{:,}".format(proc_data.total) }} crashes, {{ proc_data.groups|length }} unique type{{ "s" if proc_data.groups|length != 1 }}{% if proc_data.watchdog %}, {{ "{:,}".format(proc_data.watchdog) }} watchdog{% endif %}
+        </span>
+    </h2>
+    <div id="proc-{{ loop.index }}" class="process-body" style="display: none;">
+        {% for g in proc_data.groups %}
+        <div style="border: 1px solid #eee; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div>
+                    <span class="signal-badge signal-{{ g.signal }}">{{ signal_name(g.signal) }} ({{ g.signal }})</span>
+                    <strong style="margin-left: 8px; font-size: 18px;">{{ "{:,}".format(g.cnt) }}</strong>
+                    <span style="color: #888; font-size: 13px; margin-left: 4px;">{% if g.is_watchdog %}watchdog kill{{ "s" if g.cnt != 1 }}{% else %}occurrence{{ "s" if g.cnt != 1 }}{% endif %}</span>
+                    {% if g.is_systematic %}<span class="badge" style="background:#dc3545;color:#fff;margin-left:6px" title="Same crash signature seen on multiple devices">&#9888; Systematic</span>{% endif %}
+                    {% if g.cause.label %}<span class="badge" style="background:{{ g.cause.color }};color:#fff;margin-left:4px">{{ g.cause.label }}</span>{% endif %}
+                    {% set tkey = g.bt_csums[0] if g.bt_csums else none %}
+                    {% set t = tickets.get(tkey) if tkey else none %}
+                    {% if t %}
+                        {% set url = github_url(t.issue) %}
+                        {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#0d6efd;color:#fff;text-decoration:none;margin-left:6px">#{{ t.issue }}</a>{% else %}<span class="badge" style="background:#0d6efd;color:#fff;margin-left:6px">{{ t.issue }}</span>{% endif %}
+                        <button class="btn btn-sm" style="background:#dc3545;margin-left:4px;font-size:11px" onclick="unmarkTicketA(this,'{{ tkey }}')">&#10005;</button>
+                    {% elif tkey %}
+                        <span id="ta-{{ tkey[:12] }}"><button class="btn btn-sm" style="background:#6c757d;margin-left:6px;font-size:11px" onclick="openTicketA(this,'{{ tkey }}')">+ Mark</button></span>
+                    {% endif %}
+                </div>
+                <div style="font-size: 12px; color: #888;">
+                    {% if g.is_watchdog %}
+                    <a href="{{ url_for('cores', sw_rev=rev, process=g.proc, signal=g.signal) }}" class="btn btn-sm">View All {{ "{:,}".format(g.cnt) }} Crashes</a>
+                    {% else %}
+                    <a href="{{ url_for('cores', sw_rev=rev, process=g.proc, signal=g.signal, bt_sig=g.sig) }}" class="btn btn-sm">View All {{ "{:,}".format(g.cnt) }} Crashes</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div style="display: flex; gap: 24px; font-size: 12px; color: #888; margin-bottom: 8px;">
+                <span>Binary: <strong style="color:#555">{{ g.binary.split('/')[-1] if g.binary else 'N/A' }}</strong></span>
+                {% if not g.is_watchdog %}<span>Signature: <code>{{ g.sig[:16] }}</code></span>{% endif %}
+                <span>First: {{ g.first_seen }}</span>
+                <span>Last: {{ g.last_seen }}</span>
+            </div>
+            {% if g.is_watchdog %}
+            <p style="font-size: 12px; color: #888; margin: 0;">Watchdog-initiated (SIGXCPU) — backtraces are not meaningful; all occurrences are grouped together.</p>
+            {% elif g.sample_id in bt_snippets and bt_snippets[g.sample_id] %}
+            <pre style="font-size: 12px; padding: 10px; margin: 0;">{% for line in bt_snippets[g.sample_id] %}{{ line }}
+{% endfor %}</pre>
+            {% set total = bt_frame_counts.get(g.sample_id, 0) %}
+            {% set shown = bt_snippets[g.sample_id]|length %}
+            {% if total > shown %}
+            <div style="font-size: 12px; color: #888; padding: 4px 10px; background: #f8f8f8; border-top: 1px solid #eee;">[{{ total - shown }} more frame{{ "s" if total - shown != 1 }}]</div>
+            {% endif %}
+            {% else %}
+            <p style="font-size: 12px; color: #aaa; margin: 0;">No backtrace available</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+{% elif rev %}
+<div class="card">
+    <p class="meta">No crashes found for revision {{ rev }}.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.process-header').forEach(header => {
+    header.addEventListener('click', () => {
+        const target = document.getElementById(header.dataset.target);
+        const icon = document.getElementById('icon-' + header.dataset.target);
+        if (target.style.display === 'none') {
+            target.style.display = 'block';
+            icon.innerHTML = '&#9660;';
+        } else {
+            target.style.display = 'none';
+            icon.innerHTML = '&#9654;';
+        }
+    });
+});
+
+document.getElementById('analyze-form').addEventListener('submit', function(e) {
+    const revSelect = document.getElementById('rev-select');
+    if (!revSelect.value) {
+        e.preventDefault();
+        alert('Please select a SW Revision first.');
+        return;
+    }
+    document.getElementById('analyze-btn').disabled = true;
+    document.getElementById('analyze-btn').textContent = 'Analyzing...';
+    document.getElementById('loading-indicator').style.display = 'block';
+});
+
+function openTicketA(btn, btCsum) {
+    var sp = btn.closest('span') || btn.parentElement;
+    sp.innerHTML = '<input type="text" placeholder="Issue #" style="width:80px;font-size:11px" id="ta-i-'+btCsum+'">'  
+        + ' <input type="text" placeholder="Note" style="width:110px;font-size:11px" id="ta-n-'+btCsum+'">'  
+        + ' <button class="btn btn-sm" style="font-size:11px" onclick="saveTicketA(\''+btCsum+'\')">&#10003;</button>'  
+        + ' <button class="btn btn-sm" style="background:#6c757d;font-size:11px" onclick="location.reload()">&#10005;</button>';
+    document.getElementById('ta-i-'+btCsum).focus();
+}
+function saveTicketA(btCsum) {
+    var issue = document.getElementById('ta-i-'+btCsum).value.trim();
+    var note  = (document.getElementById('ta-n-'+btCsum) || {}).value || '';
+    if (!issue) return;
+    var fd = new FormData(); fd.append('action','mark'); fd.append('bt_csum',btCsum); fd.append('issue',issue); fd.append('note',note);
+    fetch('{{ url_for("ticket_api") }}', {method:'POST',body:fd}).then(r=>r.json()).then(function(d){
+        if (d.error) { alert(d.error); return; }
+        location.reload();
+    }).catch(function(e){ alert('Save failed: '+e); });
+}
+function unmarkTicketA(btn, btCsum) {
+    if (!confirm('Remove ticket mark from all coredumps with this crash signature?')) return;
+    var fd = new FormData(); fd.append('action','unmark'); fd.append('bt_csum',btCsum);
+    fetch('{{ url_for("ticket_api") }}', {method:'POST',body:fd}).then(r=>r.json()).then(function(d){
+        if (d.error) { alert(d.error); return; }
+        location.reload();
+    }).catch(function(e){ alert('Unmark failed: '+e); });
+}
+</script>
+{% endblock %}

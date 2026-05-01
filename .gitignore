@@ -1,0 +1,4 @@
+# Local test data (MariaDB + coredump files) — never commit
+data/
+__pycache__/
+*.pyc

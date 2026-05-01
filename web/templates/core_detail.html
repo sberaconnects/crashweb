@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}Core #{{ core.clc_id }}{% endblock %}
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('cores') }}">Coredumps</a> / <strong>#{{ core.clc_id }}</strong>
+</div>
+
+{% set gh_title = "[Crash] " ~ core.clc_core_name ~ " — " ~ signal_name(core.clc_core_signal) ~ " (#" ~ core.clc_id ~ ")" %}
+{%- set gh_body -%}## Core Dump #{{ core.clc_id }}
+
+- **Process:** {{ core.clc_core_name }}
+- **Binary:** {{ core.clc_core_binary }}
+- **Signal:** {{ signal_name(core.clc_core_signal) }} ({{ core.clc_core_signal }})
+- **Date:** {{ core.clc_date }}
+- **Device:** {{ core.cla_eqm_name or 'N/A' }} ({{ core.cla_ip_addr or '' }})
+- **SW Revision:** {{ core.clb_rev or 'N/A' }}
+- **Core File:** {{ core.clc_core_file or 'N/A' }}
+- **Backtrace Checksum:** {{ core.clc_bt_csum or 'N/A' }}
+
+[View core dump]({{ url_for('core_detail', core_id=core.clc_id, _external=True) }})
+
+### Backtrace
+
+```
+{{ gh_bt_plain | safe }}```
+{%- endset -%}
+{% set gh_url = "https://github.com/philips-internal/synergy-base/issues/new?title=" ~ gh_title|urlencode ~ "&body=" ~ gh_body|urlencode %}
+
+<textarea id="gh-issue-body" style="display:none;" aria-hidden="true">{{ gh_body }}</textarea>
+<div id="gh-issue-area" style="float:right">
+<a href="{{ gh_url }}" target="_blank" rel="noopener" class="btn" id="gh-issue-btn">&#128030; Create GitHub Issue</a>
+</div>
+<h1>Core Dump #{{ core.clc_id }} &mdash; {{ core.clc_core_name }}</h1>
+
+<div class="card">
+    <div class="detail-grid">
+        <div class="field">
+            <div class="field-label">Process Name</div>
+            <div class="field-value">{{ core.clc_core_name }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Binary</div>
+            <div class="field-value">{{ core.clc_core_binary }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Signal</div>
+            <div class="field-value">
+                <span class="signal-badge signal-{{ core.clc_core_signal }}">{{ signal_name(core.clc_core_signal) }} ({{ core.clc_core_signal }})</span>
+            </div>
+        </div>
+        <div class="field">
+            <div class="field-label">Date</div>
+            <div class="field-value">{{ core.clc_date }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Device</div>
+            <div class="field-value"><a href="{{ url_for('device_detail', device_id=core.clc_device) }}">{{ core.cla_eqm_name or 'N/A' }}</a> {{ ip_badge(core.cla_ip_addr) | safe }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">SW Revision</div>
+            <div class="field-value"><a href="{{ url_for('cores', sw_rev=core.clb_rev) }}">{{ rev_badge(core.clb_rev) | safe }}</a></div>
+        </div>
+        <div class="field">
+            <div class="field-label">Core File</div>
+            <div class="field-value" style="font-family:monospace; font-size:12px;">
+                {{ core.clc_core_file or 'N/A' }}
+                {% if core.clc_core_file %}
+                <a href="/{{ core.clc_core_file }}" class="btn btn-sm" style="margin-left:8px">Download core.gz</a>
+                {% endif %}
+                {% if art_sdk_url %}
+                <a href="{{ art_sdk_url }}" class="btn btn-sm" style="margin-left:4px;background:#6c757d">Download SDK</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="field">
+            <div class="field-label">Backtrace Checksum</div>
+            <div class="field-value" style="font-family:monospace; font-size:12px;">{{ core.clc_bt_csum or 'N/A' }}</div>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+            <div class="field-label">Ticket</div>
+            <div class="field-value" id="ticket-area">
+            {% if ticket %}
+                {% set url = github_url(ticket.issue) %}
+                {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#0d6efd;color:#fff;text-decoration:none;font-size:13px">#{{ ticket.issue }}</a>{% else %}<span class="badge" style="background:#0d6efd;color:#fff;font-size:13px">{{ ticket.issue }}</span>{% endif %}
+                {% if ticket.note %}<span style="margin-left:8px;color:#555">{{ ticket.note }}</span>{% endif %}
+                <button class="btn btn-sm" style="background:#dc3545;margin-left:12px" onclick="unmarkTicket()">Remove mark</button>
+            {% elif core.clc_bt_csum %}
+                <form id="ticket-form" style="display:inline-flex;gap:6px;align-items:center" onsubmit="markTicket();return false">
+                    <input type="text" id="t-issue" placeholder="Issue # (e.g. 15884)" style="width:150px">
+                    <input type="text" id="t-note" placeholder="Note (optional)" style="width:220px">
+                    <button type="submit" id="t-submit" class="btn btn-sm" style="background:#0d6efd">&#10003; Mark as analyzed</button>
+                </form>
+            {% else %}
+                <span class="meta">No backtrace checksum — cannot mark</span>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tabs" id="tabs">
+    <div class="tab active" data-tab="backtrace">Backtrace ({{ backtrace|length }})</div>
+    <div class="tab" data-tab="journal">Journal ({{ journal|length }})</div>
+    {% if related %}<div class="tab" data-tab="related">Related Crashes ({{ related|length }}{% if related_total > related|length %} of {{ related_total }}{% endif %})</div>{% endif %}
+</div>
+
+<div class="tab-content active" id="tab-backtrace">
+    <div class="card">
+        {% if no_sdk %}
+        <div style="padding:16px;background:#fff3cd;border-radius:6px;display:flex;align-items:center;gap:12px;">
+            <span>&#9888; SDK <strong>{{ sdk_ver or '' }}</strong> is not installed &mdash; backtrace unavailable.</span>
+            {% if sdk_ver %}
+            <span id="sdk-install-area"><button class="btn btn-sm" style="background:#fd7e14" onclick="doInstall()">&#8659; Install SDK {{ sdk_ver }}</button></span>
+            {% endif %}
+        </div>
+        {% elif sdk_pending %}
+        {% if sdk_ready %}
+        <div style="padding:16px;background:#d1e7dd;border-radius:6px;display:flex;align-items:center;gap:12px;">
+            <span>&#10003; SDK <strong>{{ sdk_ver or '' }}</strong> is installed &mdash; backtrace not yet generated.</span>
+            <button id="reprocess-btn" class="btn btn-sm" style="background:#198754;color:#fff" onclick="doReprocess()">&#9654; Process Now</button>
+            <span id="reprocess-status"></span>
+        </div>
+        {% elif sdk_installing %}
+        <div style="padding:16px;background:#cfe2ff;border-radius:6px;">
+            &#9203; SDK <strong>{{ sdk_ver or '' }}</strong> is being installed &mdash; backtrace will appear automatically once complete. Reload this page to check.
+        </div>
+        {% else %}
+        <div style="padding:16px;background:#fff3cd;border-radius:6px;display:flex;align-items:center;gap:12px;">
+            <span>&#9888; SDK <strong>{{ sdk_ver or '' }}</strong> is not installed.</span>
+            <button id="install-sdk-btn" class="btn btn-sm" style="background:#fd7e14;color:#fff;border:none" onclick="doInstallSdk()">&#11015; Install SDK</button>
+            <span id="install-sdk-status"></span>
+        </div>
+        {% endif %}
+        {% elif backtrace %}
+        <div class="pre-wrap">
+            <button type="button" class="copy-btn" data-copy-target="backtrace-text" title="Copy backtrace to clipboard" aria-label="Copy backtrace">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span class="copy-label">Copy</span>
+            </button>
+            <pre id="backtrace-text">{% for line in backtrace %}<span class="line-no">{{ line[0] }}</span>{{ line[1] }}
+{% endfor %}</pre>
+        </div>
+        {% else %}
+        <p class="meta">No backtrace data available.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="tab-content" id="tab-journal">
+    <div class="card">
+        {% if journal %}
+        <pre>{% for line in journal %}<span class="line-no">{{ line[0] }}</span>{{ line[1] }}
+{% endfor %}</pre>
+        {% else %}
+        <p class="meta">No journal data available.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if related %}
+<div class="tab-content" id="tab-related">
+    <div class="card">
+        <p class="meta">
+            Other coredumps with the same crash signature ({{ core.clc_core_name }} / {{ core.clc_core_signal }} / {{ core.clc_bt_csum[:12] }}...)
+            {% if related_total > related|length %}
+            <br><strong>{{ related_total }}</strong> total occurrences found (showing most recent 20).
+            <a href="{{ url_for('analyze', rev=core.clb_rev) }}">View in Crash Analysis</a>
+            {% endif %}
+        </p>
+        <table>
+            <thead><tr><th>ID</th><th>Date</th><th>Process</th><th>Device</th><th>SW Rev</th></tr></thead>
+            <tbody>
+            {% for r in related %}
+            <tr>
+                <td><a href="{{ url_for('core_detail', core_id=r[0]) }}">#{{ r[0] }}</a></td>
+                <td>{{ r[2] }}</td>
+                <td>{{ r[1] }}</td>
+                <td>{{ r[3] or '' }}</td>
+                <td>{{ r[4] or '' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+});
+
+async function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try {
+        if (!document.execCommand('copy')) throw new Error('execCommand copy failed');
+    } finally {
+        document.body.removeChild(ta);
+    }
+}
+
+(function () {
+    const area = document.getElementById('gh-issue-area');
+    const btn = document.getElementById('gh-issue-btn');
+    const bodyEl = document.getElementById('gh-issue-body');
+    if (!btn || !area) return;
+    btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const url = btn.getAttribute('href');
+        if (bodyEl) {
+            try { await copyTextToClipboard(bodyEl.value); } catch (_) {}
+        }
+        window.open(url, '_blank', 'noopener');
+        {% if core.clc_bt_csum %}
+        // Replace button with inline mark-as-analyzed prompt
+        area.innerHTML =
+            '<span style="font-size:13px;color:#555;margin-right:6px">Issue created? Enter #:</span>'
+            + '<input id="gh-auto-issue" type="text" placeholder="e.g. 15884" style="width:90px;font-size:13px;padding:3px 6px;border:1px solid #ccc;border-radius:4px">'
+            + ' <button class="btn btn-sm" style="background:#0d6efd" onclick="ghAutoMark()">&#10003; Mark as analyzed</button>'
+            + ' <button class="btn btn-sm" style="background:#6c757d" onclick="document.getElementById(\'gh-issue-area\').style.display=\'none\'">&#10005;</button>';
+        setTimeout(() => { var i = document.getElementById('gh-auto-issue'); if (i) i.focus(); }, 50);
+        {% endif %}
+    });
+})();
+
+{% if core.clc_bt_csum %}
+window.ghAutoMark = function() {
+    var issue = (document.getElementById('gh-auto-issue') || {}).value || '';
+    issue = issue.replace(/[^\d]/g, '');
+    if (!issue) { document.getElementById('gh-auto-issue').focus(); return; }
+    var markBtn = document.querySelector('#gh-issue-area button');
+    if (markBtn) { markBtn.disabled = true; markBtn.textContent = 'Saving…'; }
+    var fd = new FormData();
+    fd.append('action', 'mark'); fd.append('bt_csum', '{{ core.clc_bt_csum }}');
+    fd.append('issue', issue); fd.append('note', 'Created via GitHub Issue button');
+    fetch('{{ url_for("ticket_api") }}', {method: 'POST', body: fd}).then(r => r.json()).then(function(d) {
+        if (d.error) { alert(d.error); if (markBtn) { markBtn.disabled = false; markBtn.textContent = '\u2713 Mark as analyzed'; } return; }
+        location.reload();
+    }).catch(function(e) { alert('Save failed: ' + e); if (markBtn) { markBtn.disabled = false; } });
+};
+{% endif %}
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const target = document.getElementById(btn.dataset.copyTarget);
+        if (!target) return;
+        const clone = target.cloneNode(true);
+        clone.querySelectorAll('.line-no').forEach(n => n.remove());
+        const text = clone.innerText;
+        try {
+            await copyTextToClipboard(text);
+            const label = btn.querySelector('.copy-label');
+            const prev = label ? label.textContent : '';
+            btn.classList.add('copied');
+            if (label) label.textContent = 'Copied';
+            setTimeout(() => { btn.classList.remove('copied'); if (label) label.textContent = prev; }, 1500);
+        } catch (e) {
+            alert('Failed to copy: ' + e);
+        }
+    });
+});
+{% if core.clc_bt_csum %}
+window.markTicket = function() {
+    var issue = document.getElementById('t-issue').value.trim();
+    var note  = document.getElementById('t-note').value.trim();
+    if (!issue) { document.getElementById('t-issue').focus(); return; }
+    var btn = document.getElementById('t-submit');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    var fd = new FormData(); fd.append('action','mark'); fd.append('bt_csum','{{ core.clc_bt_csum }}'); fd.append('issue',issue); fd.append('note',note);
+    fetch('{{ url_for("ticket_api") }}', {method:'POST',body:fd}).then(r=>r.json()).then(function(d){
+        if (d.error) { btn.disabled=false; btn.innerHTML='&#10003; Mark as analyzed'; alert(d.error); return; }
+        location.reload();
+    }).catch(function(e){ btn.disabled=false; btn.innerHTML='&#10003; Mark as analyzed'; alert('Save failed: '+e); });
+};
+window.unmarkTicket = function() {
+    if (!confirm('Remove ticket mark from all coredumps with this crash signature?')) return;
+    var fd = new FormData(); fd.append('action','unmark'); fd.append('bt_csum','{{ core.clc_bt_csum }}');
+    fetch('{{ url_for("ticket_api") }}', {method:'POST',body:fd}).then(r=>r.json()).then(function(d){
+        if (d.error) { alert(d.error); return; }
+        location.reload();
+    }).catch(function(e){ alert('Unmark failed: '+e); });
+};
+{% endif %}
+{% if no_sdk and sdk_ver %}
+window.doInstall = function() {
+    var btn = document.querySelector('#sdk-install-area button');
+    if (btn) { btn.disabled = true; btn.textContent = 'Checking\u2026'; }
+    fetch('{{ url_for("sdk_api") }}?action=status').then(r => r.json()).then(function(data) {
+        var ver = {{ sdk_ver | tojson }};
+        var avail = (data.available || []).find(s => s.version === ver);
+        if (!avail) {
+            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#6c757d;color:#fff'>SDK not available in Artifactory</span>";
+            return;
+        }
+        if (!data.has_credentials) {
+            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#6c757d;color:#fff' title='Set ARTIFACTORY_USER/ARTIFACTORY_PASS'>No credentials configured</span>";
+            return;
+        }
+        var fd = new FormData();
+        fd.append('action', 'install'); fd.append('version', ver); fd.append('art_version', avail.art_version);
+        fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(r => r.json()).then(function(d) {
+            if (d.status === 'started' || d.status === 'already_installing') {
+                document.getElementById('sdk-install-area').innerHTML =
+                    "<span class='badge' style='background:#fd7e14;color:#fff'>&#9203; Installing\u2026</span>"
+                    + " <button class='btn btn-sm' style='background:#dc3545' onclick='doCancel()'>&#10005; Cancel</button>";
+            } else if (d.status === 'already_installed') {
+                document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#198754;color:#fff'>&#10003; Installed \u2014 re-run collector to generate backtrace</span>";
+            } else {
+                alert('Error: ' + (d.error || JSON.stringify(d)));
+                if (btn) { btn.disabled = false; btn.textContent = '\u2B07 Install SDK {{ sdk_ver }}'; }
+            }
+        });
+    }).catch(() => { if (btn) { btn.disabled = false; } });
+};
+window.doCancel = function() {
+    var cancelBtn = document.querySelector('#sdk-install-area .btn');
+    if (cancelBtn) { cancelBtn.disabled = true; cancelBtn.textContent = 'Cancelling\u2026'; }
+    var ver = {{ sdk_ver | tojson }};
+    var fd = new FormData();
+    fd.append('action', 'cancel'); fd.append('version', ver);
+    fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(r => r.json()).then(function() {
+        document.getElementById('sdk-install-area').innerHTML =
+            "<span class='badge' style='background:#6c757d;color:#fff'>&#10005; Cancelled &mdash; </span>"
+            + " <button class='btn btn-sm' style='background:#fd7e14' onclick='doInstall()'>&#8659; Retry Install {{ sdk_ver }}</button>";
+    }).catch(function() {
+        if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.textContent = '&#10005; Cancel'; }
+    });
+};
+{% endif %}
+{% if sdk_pending and sdk_ready %}
+window.doReprocess = function() {
+    var btn = document.getElementById('reprocess-btn');
+    var status = document.getElementById('reprocess-status');
+    btn.disabled = true;
+    btn.textContent = 'Processing\u2026';
+    status.innerHTML = '';
+    fetch('{{ url_for("core_reprocess", core_id=core.clc_id) }}', {method: 'POST'})
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.status === 'started') {
+                status.innerHTML = '<span style="color:#0a3622">Started \u2014 reload in ~30 seconds to see the backtrace.</span>';
+            } else if (d.status === 'already_processing') {
+                status.innerHTML = '<span style="color:#0a3622">Already in progress \u2014 reload shortly.</span>';
+            } else {
+                status.innerHTML = '<span style="color:#dc3545">' + (d.error || 'Unknown error') + '</span>';
+                btn.disabled = false;
+                btn.textContent = '\u25b6 Process Now';
+            }
+        })
+        .catch(function(e) {
+            status.innerHTML = '<span style="color:#dc3545">Request failed \u2014 ' + e + '</span>';
+            btn.disabled = false;
+            btn.textContent = '\u25b6 Process Now';
+        });
+};
+{% endif %}
+{% if sdk_pending and not sdk_ready and not sdk_installing %}
+window.doInstallSdk = function() {
+    var btn = document.getElementById('install-sdk-btn');
+    var status = document.getElementById('install-sdk-status');
+    btn.disabled = true;
+    btn.textContent = 'Starting\u2026';
+    status.innerHTML = '';
+    fetch('{{ url_for("core_install_sdk", core_id=core.clc_id) }}', {method: 'POST'})
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.status === 'started') {
+                btn.textContent = '\u23f3 Installing\u2026';
+                status.innerHTML = '<span style="color:#664d03">Installing SDK \u2014 this page will reload automatically when the backtrace is ready.</span>';
+                (function poll() {
+                    setTimeout(function() {
+                        fetch(window.location.href, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                            .then(function() { location.reload(); })
+                            .catch(poll);
+                    }, 15000);
+                })();
+            } else if (d.status === 'already_installing') {
+                status.innerHTML = '<span style="color:#664d03">Already installing \u2014 reload this page to check progress.</span>';
+                btn.disabled = false;
+                btn.textContent = '\u11015 Install SDK';
+            } else if (d.status === 'already_installed') {
+                status.innerHTML = '<span style="color:#0a3622">SDK already installed \u2014 reloading\u2026</span>';
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                status.innerHTML = '<span style="color:#dc3545">' + (d.error || 'Unknown error') + '</span>';
+                btn.disabled = false;
+                btn.textContent = '\u11015 Install SDK';
+            }
+        })
+        .catch(function(e) {
+            status.innerHTML = '<span style="color:#dc3545">Request failed \u2014 ' + e + '</span>';
+            btn.disabled = false;
+            btn.textContent = '\u11015 Install SDK';
+        });
+};
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+# Local testing override - no Traefik/LDAP, Flask exposed directly on port 8080
+# Usage: docker compose -f docker-compose.yml -f docker-compose-local.yml up -d mariadb flask-web ccs
+services:
+  traefik:
+    profiles: [skip]
+
+  ccs:
+    volumes:
+      - "./data/coredumps:/space/coredumps"
+      - "./data/sdks:/space/sdks"
+
+  flask-web:
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./data/sdks:/var/www/sdks"
+      - "./data/coredumps:/var/www/html/coredumps"
+
+  mariadb:
+    volumes:
+      - "./data/mariadb:/var/lib/mysql"
+      - "./docker/ccs/sql:/docker-entrypoint-initdb.d:ro"

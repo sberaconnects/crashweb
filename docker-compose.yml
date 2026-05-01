@@ -1,0 +1,73 @@
+services:
+  traefik:
+    image: "traefik:3.6.7"
+    container_name: "traefik"
+    ports:
+      - "80:80"
+      - "443:443"
+    command:
+      - "--providers.docker=true"
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.https.address=:443"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/traefik_dynamic.yml"
+      - "--experimental.plugins.ldapAuth.modulename=github.com/wiltonsr/ldapAuth"
+      - "--experimental.plugins.ldapAuth.version=v0.1.11"
+      - "--log.level=INFO"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+    environment:
+      LDAP_BIND_USER: ${LDAP_BIND_USER}
+      LDAP_BIND_PASS: ${LDAP_BIND_PASS}
+    networks:
+      - web
+    restart: 'always'
+
+  ccs:
+    image: "ccs-ccs"
+    build:
+      context: .
+      dockerfile: docker/ccs/Dockerfile
+    depends_on:
+      - mariadb
+    restart: 'always'
+    volumes:
+      - "/home/coredumps:/space/coredumps"
+      - "/home/sdks:/space/sdks"
+    ports:
+      - '5555:5555'
+    networks:
+      - default
+  flask-web:
+    image: "ccs-flask-web"
+    build:
+      context: .
+      dockerfile: docker/flask-web/Dockerfile
+    depends_on:
+      - mariadb
+    restart: 'always'
+    volumes:
+      - "/home/sdks:/var/www/sdks"
+      - "/home/coredumps:/var/www/html/coredumps"
+    environment:
+      - ARTIFACTORY_USER=${ARTIFACTORY_USER:-}
+      - ARTIFACTORY_PASS=${ARTIFACTORY_PASS:-}
+    networks:
+      - web
+      - default
+  mariadb:
+    image: mariadb:10.6
+    environment:
+        MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 1
+    restart: 'always'
+    volumes:
+      - "/home/mariadb:/var/lib/mysql"
+      - "./docker/ccs/sql:/docker-entrypoint-initdb.d:ro"
+    networks:
+      - default
+
+networks:
+  web:
+    name: web

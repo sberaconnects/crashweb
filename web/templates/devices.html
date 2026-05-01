@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Devices{% endblock %}
+{% block content %}
+<h1>Devices</h1>
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Name</th><th>Label</th><th>IP Address</th><th>Type</th><th>Upgrade Method</th><th style="text-align:right">Crashes</th><th>Last Crash</th></tr>
+        </thead>
+        <tbody>
+        {% for d in devices %}
+        <tr>
+            <td>{{ d.cla_id }}</td>
+            <td><a href="{{ url_for('device_detail', device_id=d.cla_id) }}">{{ d.cla_eqm_name }}</a></td>
+            <td>{{ d.cla_eqm_label }}</td>
+            <td>{{ ip_badge(d.cla_ip_addr) | safe }}</td>
+            <td>{% if d.cla_eqm_type == 1 %}Delta 8{% elif d.cla_eqm_type == 2 %}Delta 15{% elif d.cla_eqm_type == 0 %}Delta Transport{% else %}{{ d.cla_eqm_type }}{% endif %}</td>
+            <td>{{ d.cla_upgrade_method }}</td>
+            <td style="text-align:right"><a href="{{ url_for('cores', device=d.cla_id) }}">{{ "{:,}".format(d.crash_count) }}</a></td>
+            <td>{{ d.last_crash or '' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Production
+    runs-on: [self-hosted, Linux, X64, bbl2xgps]
+    environment: production
+    env:
+      LDAP_BIND_USER: ${{ secrets.LDAP_BIND_USER }}
+      LDAP_BIND_PASS: ${{ secrets.LDAP_BIND_PASS }}
+      ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+      ARTIFACTORY_PASS: ${{ secrets.ARTIFACTORY_PASS }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Stop old compose if existing
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_DIR="$HOME/coredump-server"
+
+          if [ -d "$TARGET_DIR" ]; then
+            cd "$TARGET_DIR"
+            docker compose -f docker-compose.yml -f docker-compose-production.yml down || true
+          fi
+
+      - name: Update deployment directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_DIR="$HOME/coredump-server"
+
+          mkdir -p "$TARGET_DIR"
+          rsync -a --delete --exclude ".git" "$GITHUB_WORKSPACE"/ "$TARGET_DIR"/
+
+      - name: Start compose in target directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_DIR="$HOME/coredump-server"
+
+          cd "$TARGET_DIR"
+          docker compose -f docker-compose.yml -f docker-compose-production.yml up -d --build --force-recreate
+          docker compose -f docker-compose.yml -f docker-compose-production.yml ps

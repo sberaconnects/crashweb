@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Device: {{ device.cla_eqm_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('devices') }}">Devices</a> / <strong>{{ device.cla_eqm_name }}</strong>
+</div>
+
+<h1>{{ device.cla_eqm_name }}</h1>
+
+<div class="card">
+    <div class="detail-grid">
+        <div class="field">
+            <div class="field-label">Name</div>
+            <div class="field-value">{{ device.cla_eqm_name }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Label</div>
+            <div class="field-value">{{ device.cla_eqm_label }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">IP Address</div>
+            <div class="field-value">{{ device.cla_ip_addr }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Equipment Type</div>
+            <div class="field-value">{% if device.cla_eqm_type == 1 %}Delta 8{% elif device.cla_eqm_type == 2 %}Delta 15{% else %}{{ device.cla_eqm_type }}{% endif %}</div>
+        </div>
+    </div>
+</div>
+
+<p><a href="{{ url_for('cores', device=device.cla_id) }}" class="btn">View all coredumps for this device &rarr;</a></p>
+{% endblock %}

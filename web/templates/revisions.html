@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}SW Revisions{% endblock %}
+{% block content %}
+<h1>Software Revisions</h1>
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Revision</th><th>Type</th><th style="text-align:right">Crashes</th><th>SDK</th></tr>
+        </thead>
+        <tbody>
+        {% for r in revisions %}
+        <tr>
+            <td>{{ r[0] }}</td>
+            <td><a href="{{ url_for('cores', sw_rev=r[1]) }}">{{ rev_badge(r[1]) | safe }}</a></td>
+            <td>{{ r[2] }}</td>
+            <td style="text-align:right">{{ "{:,}".format(r[3]) }}</td>
+            <td>
+                {% if r[4] is not none %}
+                    {% if r[5] %}
+                    <span style="color:#198754;font-weight:600">&#10003; Installed</span>
+                    {% else %}
+                    <button class="btn btn-sm sdk-install-btn" style="background:#fd7e14"
+                            data-sdk-ver="{{ r[4] }}" onclick="installSdk(this)">&#8659; Install {{ r[4] }}</button>
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function cancelSdk(btn, sdkVer) {
+    btn.disabled = true;
+    btn.textContent = 'Cancelling\u2026';
+    var fd = new FormData();
+    fd.append('action', 'cancel');
+    fd.append('version', sdkVer);
+    fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(function(r) { return r.json(); }).then(function(d) {
+        var cell = btn.closest('td');
+        cell.innerHTML = '<span style="color:#dc3545">&#10005; Cancelled</span>';
+    }).catch(function() {
+        btn.disabled = false;
+        btn.textContent = 'Cancel';
+    });
+}
+
+function installSdk(btn) {
+    var sdkVer = btn.getAttribute('data-sdk-ver');
+    btn.disabled = true;
+    btn.textContent = 'Checking\u2026';
+    fetch('{{ url_for("sdk_api") }}?action=status').then(function(r) { return r.json(); }).then(function(data) {
+        var avail = (data.available || []).find(function(s) { return s.version === sdkVer; });
+        if (!avail) {
+            btn.textContent = 'Not in Artifactory';
+            btn.style.background = '#6c757d';
+            return;
+        }
+        if (!data.has_credentials) {
+            btn.textContent = 'No credentials';
+            btn.style.background = '#dc3545';
+            return;
+        }
+        btn.textContent = 'Installing\u2026';
+        var fd = new FormData();
+        fd.append('action', 'install');
+        fd.append('version', avail.version);
+        fd.append('art_version', avail.art_version);
+        fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.error) {
+                btn.textContent = d.error;
+                btn.style.background = '#dc3545';
+                btn.disabled = false;
+            } else if (d.status === 'already_installed') {
+                btn.closest('td').innerHTML = '<span style="color:#198754;font-weight:600">&#10003; Installed</span>';
+            } else {
+                var cell = btn.closest('td');
+                cell.innerHTML = '<span style="color:#fd7e14">&#9203; Installing\u2026</span>'
+                    + ' <button class="btn btn-sm" style="background:#dc3545" onclick="cancelSdk(this,' + JSON.stringify(sdkVer) + ')">&#10005; Cancel</button>';
+            }
+        });
+    }).catch(function() {
+        btn.textContent = '\u2B07 Install ' + sdkVer;
+        btn.disabled = false;
+    });
+}
+</script>
+{% endblock %}
