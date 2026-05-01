@@ -1,4 +1,4 @@
-# crashweb
+# CrashWeb
 
 A self-hosted web UI for collecting, browsing, and analyzing coredumps from embedded Linux devices.
 
@@ -7,12 +7,12 @@ A self-hosted web UI for collecting, browsing, and analyzing coredumps from embe
 | Page | URL | Description |
 |------|-----|-------------|
 | Dashboard | `/` | Stats, top crashing binaries with cause classification, recent coredumps |
-| Coredumps | `/cores` | Filterable list by device, SW revision, signal, binary, backtrace checksum |
+| Cores | `/cores` | Filterable list by device, revision, signal, binary, backtrace checksum |
 | Core detail | `/core/<id>` | Metadata, backtrace, journal, related crashes, ticket marking, GitHub issue creation |
 | Devices | `/devices` | All known devices with crash counts |
 | Device detail | `/device/<id>` | Per-device coredump list |
-| SW Revisions | `/revisions` | All SW revisions with crash counts and SDK install status |
-| Crash Analysis | `/analyze` | Crash grouping by backtrace signature — systematic bug detection, cause badges |
+| Revisions | `/revisions` | All SW revisions with crash counts and SDK install status |
+| Analysis | `/analyze` | Crash grouping by backtrace signature — systematic bug detection, cause badges |
 
 Key capabilities:
 
@@ -22,6 +22,7 @@ Key capabilities:
 - **Create GitHub Issue** — pre-fills title and backtrace in GitHub `issues/new` (requires `GITHUB_REPO`)
 - **SDK management** — install SDKs per revision for backtrace generation (requires `SDK_BASE_URL`)
 - **Coredump download** — direct download of `.core.gz` files with path traversal protection
+- **Collector scripts** — SSH-based tools to pull coredumps from devices and upload them (see [`tools/`](#collector-tools))
 
 ## Stack
 
@@ -34,7 +35,7 @@ Key capabilities:
 
 ```bash
 # 1. Clone
-git clone https://github.com/sbera.connects/crashweb
+git clone https://github.com/sberaconnects/crashweb
 cd crashweb
 
 # 2. Configure
@@ -123,6 +124,72 @@ cd web
 pip install -r requirements.txt
 pytest tests/ -v
 ```
+
+## Collector Tools
+
+`tools/collect.py` pulls coredumps from a single device over SSH using `coredumpctl`, then uploads them to the CrashWeb stack via the CCS socket on port 5555.
+
+`tools/collect-all.py` runs `collect.py` in parallel threads across multiple devices, with optional polling.
+
+**Requirements:**
+
+```bash
+pip install paramiko
+```
+
+**Single device:**
+
+```bash
+# Auto-detect SW version from /etc/os-release
+python3 tools/collect.py --device 192.168.1.100
+
+# Explicit version, custom SSH key, named device
+python3 tools/collect.py \
+    --device 192.168.1.100 \
+    --version 1.2.3-build.45 \
+    --ssh-key ~/.ssh/id_device \
+    --name my-device --label lab-unit-1
+```
+
+**Multiple devices (parallel):**
+
+```bash
+# IP list inline — run once
+python3 tools/collect-all.py --devices 192.168.1.100 192.168.1.101 192.168.1.102
+
+# From file — poll every 5 min for 2 hours
+python3 tools/collect-all.py \
+    --devices-file tools/devices.txt \
+    --duration 7200 --interval 300
+```
+
+**`tools/devices.txt` format** (copy from `devices.txt.example`):
+
+```text
+# one IP per line, optional SW version override
+192.168.1.100
+192.168.1.101 1.2.3-build.45
+192.168.1.102
+```
+
+**Key options** (both scripts):
+
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `--server` | `127.0.0.1` | CCS server IP |
+| `--port` | `5555` | CCS server port |
+| `--ssh-user` | `root` | SSH username |
+| `--ssh-key` | agent/default | Path to SSH private key |
+| `--name` | `device` | Device name stored in DB |
+| `--label` | _(empty)_ | Device label stored in DB |
+| `--container` | `crashweb-mariadb-1` | MariaDB Docker container name |
+| `--version-key` | _(tries list)_ | Specific `/etc/os-release` key for version detection |
+
+Version detection tries these `/etc/os-release` keys in order:
+`BUILD_VERSION`, `IMAGE_VERSION`, `OS_VERSION`, `VERSION_ID`, `VERSION`.
+Use `--version` or `--version-key` to override.
+
+Already-uploaded coredumps are tracked in `tools/.seen_coredumps.json` so re-runs are idempotent.
 
 ## License
 
