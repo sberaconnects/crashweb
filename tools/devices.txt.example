@@ -1,0 +1,8 @@
+# devices.txt — one device per line
+# Format: IP [sw-version]
+# Lines starting with # are ignored.
+#
+# Examples:
+192.168.1.100
+192.168.1.101 1.2.3-build.45
+192.168.1.102
