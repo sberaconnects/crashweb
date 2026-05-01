@@ -902,7 +902,7 @@ def _start_sdk_install(version, art_version):
     if not user or not password:
         return jsonify({'error': 'No Artifactory credentials. Set ARTIFACTORY_USER and ARTIFACTORY_PASS environment variables.'}), 403
     sdk_vdir = os.path.join(_SDK_DIR, version)
-    sysroot = os.path.join(sdk_vdir, _SYSROOT_SUBPATH)
+    sysroot = os.path.join(sdk_vdir, _SDK_SYSROOT_SUBPATH) if _SDK_SYSROOT_SUBPATH else sdk_vdir
     lock = os.path.join(sdk_vdir, '.installing')
     if os.path.isdir(sysroot) and not os.path.exists(lock):
         return jsonify({'status': 'already_installed', 'version': version})
@@ -966,7 +966,7 @@ def sdk_api():
         available = _fetch_artifactory_versions()
         installed_vers = {s['version'] for s in installed if s['installed']}
         for av in available:
-            sysroot = os.path.join(_SDK_DIR, av['version'], _SYSROOT_SUBPATH)
+            sysroot = os.path.join(_SDK_DIR, av['version'], _SDK_SYSROOT_SUBPATH) if _SDK_SYSROOT_SUBPATH else os.path.join(_SDK_DIR, av['version'])
             av['installed'] = av['version'] in installed_vers
             av['ready'] = os.path.isdir(sysroot)
             av['installing'] = os.path.exists(os.path.join(_SDK_DIR, av['version'], '.installing'))
