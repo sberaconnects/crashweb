@@ -97,7 +97,7 @@
     {% set total = bt_frame_counts.get(sg.sample_id, 0) %}
     {% set shown = bt_snippets[sg.sample_id]|length %}
     {% if total > shown %}
-    <div style="font-size: 12px; color: #888; padding: 4px 10px; background: #f8f8f8; border-top: 1px solid #eee;">[{{ total - shown }} more frame{{ "s" if total - shown != 1 }}]</div>
+    <div style="font-size: 12px; color: #656d76; padding: 4px 10px; background: #f6f8fa; border-top: 1px solid #d0d7de;">[{{ total - shown }} more frame{{ "s" if total - shown != 1 }}]</div>
     {% endif %}
     {% else %}
     <p style="font-size: 12px; color: #aaa; margin: 0;">No backtrace available</p>
