@@ -53,22 +53,15 @@ function installSdk(btn) {
     btn.disabled = true;
     btn.textContent = 'Checking\u2026';
     fetch('{{ url_for("sdk_api") }}?action=status').then(function(r) { return r.json(); }).then(function(data) {
-        var avail = (data.available || []).find(function(s) { return s.version === sdkVer; });
-        if (!avail) {
-            btn.textContent = 'Not in Artifactory';
+        if (!data.has_remote) {
+            btn.textContent = 'Remote SDK not configured';
             btn.style.background = '#6c757d';
-            return;
-        }
-        if (!data.has_credentials) {
-            btn.textContent = 'No credentials';
-            btn.style.background = '#dc3545';
             return;
         }
         btn.textContent = 'Installing\u2026';
         var fd = new FormData();
         fd.append('action', 'install');
-        fd.append('version', avail.version);
-        fd.append('art_version', avail.art_version);
+        fd.append('version', sdkVer);
         fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(function(r) { return r.json(); }).then(function(d) {
             if (d.error) {
                 btn.textContent = d.error;

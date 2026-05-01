@@ -151,16 +151,13 @@
         var el = document.getElementById('sdk-status-body');
         if (!el) return;
         var installed = data.installed || [];
-        var available = data.available || [];
-        var hasCreds = data.has_credentials;
+        var hasRemote = data.has_remote;
         var instMap = {};
         installed.forEach(function(s) { instMap[s.version] = s; });
         var installing = installed.filter(function(s) { return s.installing; });
         if (installing.length > 0 && !_sdkPollTimer) startPoll(installing[0].version);
         if (installing.length === 0) stopPoll();
-        var latest = available.length ? available[0] : null;
         var html = '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:4px 0">';
-        // Already-installed SDKs — always visible
         var readyInstalled = installed.filter(function(s) { return s.installed; });
         if (readyInstalled.length === 0 && installing.length === 0) {
             html += '<span style="color:#888;font-style:italic">No SDKs installed</span>';
@@ -172,25 +169,8 @@
                 html += '</div>';
             });
         }
-        if (latest) {
-            var isInstalled = instMap[latest.version] && instMap[latest.version].installed;
-            var isInstalling = instMap[latest.version] && instMap[latest.version].installing;
-            if (isInstalled) {
-                // already shown in the installed list on the left — no need to repeat
-            } else if (isInstalling) {
-                html += '<span style="border-left:1px solid #dee2e6;margin:0 4px;align-self:stretch"></span>';
-                html += '<span style="color:#3498db;font-weight:600">&#9203; Installing <span style="font-family:monospace">' + latest.version + '</span>&hellip;</span>';
-            } else {
-                html += '<span style="border-left:1px solid #dee2e6;margin:0 4px;align-self:stretch"></span>';
-                html += '<span style="color:#888;margin-right:8px">Latest available: <span style="font-weight:600;font-family:monospace">' + latest.version + '</span></span>';
-                if (hasCreds) {
-                    html += '<button onclick="installSdk(\'' + latest.version + '\',\'' + latest.art_version + '\')" id="install-btn-' + latest.version.replace(/\./g, '-') + '" class="btn btn-sm">&#8659; Download &amp; Install</button>';
-                } else {
-                    html += '<span class="badge" style="background:#6c757d;color:#fff" title="Set ARTIFACTORY_USER and ARTIFACTORY_PASS to enable">No credentials</span>';
-                }
-            }
-        } else if (available.length === 0) {
-            html += '<span style="color:#888;font-style:italic;margin-left:12px">Artifactory unavailable' + (hasCreds ? '' : ' (no credentials)') + '</span>';
+        if (!hasRemote) {
+            html += '<span style="color:#888;font-style:italic;margin-left:12px">Remote SDK install not configured (set SDK_BASE_URL)</span>';
         }
         html += '</div>';
         // Install log — shown below installed SDKs only while actively installing
@@ -214,11 +194,11 @@
             if (el) el.innerHTML = '<span style="color:#dc3545">SDK status unavailable</span>';
         });
     }
-    window.installSdk = function(version, artVersion) {
+    window.installSdk = function(version) {
         var btn = document.getElementById('install-btn-' + version.replace(/\./g, '-'));
         if (btn) { btn.disabled = true; btn.textContent = 'Starting\u2026'; }
         var fd = new FormData();
-        fd.append('action', 'install'); fd.append('version', version); fd.append('art_version', artVersion);
+        fd.append('action', 'install'); fd.append('version', version);
         fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd})
             .then(function(r) { return r.json(); })
             .then(function(d) {

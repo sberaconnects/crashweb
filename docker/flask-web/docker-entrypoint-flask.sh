@@ -1,16 +1,13 @@
 #!/bin/bash
-# Inject Artifactory credentials into the cron environment, then start cron + gunicorn.
+# Set up cron environment, then start cron + gunicorn.
 
 set -e
 
-# Write cron job with current env vars so the script can reach Artifactory
+# Write cron job with current env vars
 mkdir -p /etc/cron.d
 cat > /etc/cron.d/sdk-auto-install <<EOF
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-ARTIFACTORY_USER=${ARTIFACTORY_USER:-}
-ARTIFACTORY_PASS=${ARTIFACTORY_PASS:-}
-
 @reboot     root /usr/local/bin/auto-install-sdk.sh >> /var/www/sdks/.auto-install.log 2>&1
 0 0 * * *   root /usr/local/bin/auto-install-sdk.sh >> /var/www/sdks/.auto-install.log 2>&1
 EOF

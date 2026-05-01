@@ -305,17 +305,12 @@ window.doInstall = function() {
     if (btn) { btn.disabled = true; btn.textContent = 'Checking\u2026'; }
     fetch('{{ url_for("sdk_api") }}?action=status').then(r => r.json()).then(function(data) {
         var ver = {{ sdk_ver | tojson }};
-        var avail = (data.available || []).find(s => s.version === ver);
-        if (!avail) {
-            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#6c757d;color:#fff'>SDK not available in Artifactory</span>";
-            return;
-        }
-        if (!data.has_credentials) {
-            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#6c757d;color:#fff' title='Set ARTIFACTORY_USER/ARTIFACTORY_PASS'>No credentials configured</span>";
+        if (!data.has_remote) {
+            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#6c757d;color:#fff'>Remote SDK install not configured (set SDK_BASE_URL)</span>";
             return;
         }
         var fd = new FormData();
-        fd.append('action', 'install'); fd.append('version', ver); fd.append('art_version', avail.art_version);
+        fd.append('action', 'install'); fd.append('version', ver);
         fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(r => r.json()).then(function(d) {
             if (d.status === 'started' || d.status === 'already_installing') {
                 document.getElementById('sdk-install-area').innerHTML =
