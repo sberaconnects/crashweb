@@ -28,18 +28,17 @@ Use your best judgment, and feel free to propose changes to this document in a p
 
 ## Why?
 
-Following these guidelines helps to communicate that you respect the time of the developers managing and developing this innersource project. In return, they should reciprocate that respect in addressing your issue, assessing changes, and helping you finalize your pull requests.
+Following these guidelines helps to communicate that you respect the time of the developers managing and developing this open source project. In return, they should reciprocate that respect in addressing your issue, assessing changes, and helping you finalize your pull requests.
 
 ## Before Getting Started
 
 ### Learn about our code of conduct
 
-There is currently no official code of conduct, follow general Philips guidelines and rules and apply common sense.
+There is currently no official code of conduct. Apply common sense and basic open-source etiquette.
 
 ### Learn about our contribution models
 
-At Philips, we use two different contribution models, OSS and GitHub.
-This project uses the [OSS Model](#oss-model).
+This project uses the standard open source contribution model.
 
 ### Got a Question or Problem?
 
