@@ -25,6 +25,8 @@ os.environ.setdefault('DB_USER', 'test')
 os.environ.setdefault('DB_PASSWORD', '')
 os.environ.setdefault('DB_NAME', 'test')
 os.environ.setdefault('DB_PORT', '3306')
+os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-testing')   # ADD THIS
+os.environ.setdefault('GITHUB_REPO', 'test-owner/test-repo')          # ADD THIS
 
 # Patch pymysql before app import so SQLAlchemy doesn't try to connect
 import pymysql
@@ -209,6 +211,26 @@ class TestFetchTickets(unittest.TestCase):
         assert result['csum1']['issue'] == '15884'
         assert result['csum1']['note'] == 'some note'
         assert 'csum2' in result
+
+
+class TestConfigSecretKeyRequired(unittest.TestCase):
+    def test_missing_secret_key_raises(self):
+        """config.py must raise RuntimeError when SECRET_KEY env var is missing."""
+        import importlib
+        import config as cfg_module
+        old_val = os.environ.pop('SECRET_KEY', None)
+        try:
+            importlib.reload(cfg_module)
+            # If we reach here without error, the check is missing
+            self.fail("Expected RuntimeError when SECRET_KEY is not set")
+        except RuntimeError as e:
+            assert 'SECRET_KEY' in str(e)
+        finally:
+            if old_val is not None:
+                os.environ['SECRET_KEY'] = old_val
+            else:
+                os.environ['SECRET_KEY'] = 'test-secret-key-for-testing'
+            importlib.reload(cfg_module)
 
 
 if __name__ == '__main__':
