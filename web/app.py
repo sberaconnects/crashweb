@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import logging
 import signal
@@ -457,11 +456,7 @@ def core_install_sdk(core_id):
     if not m:
         return jsonify({'error': 'Cannot determine SDK version from SW revision'}), 409
     sdk_ver = 'v' + m.group(1)
-    available = _fetch_artifactory_versions()
-    avail = next((s for s in available if s['version'] == sdk_ver), None)
-    if not avail:
-        return jsonify({'error': f'SDK {sdk_ver} not found in Artifactory'}), 404
-    return _start_sdk_install(sdk_ver, avail['art_version'])
+    return _start_sdk_install(sdk_ver)
 
 @app.route('/devices')
 def devices():
@@ -865,44 +860,16 @@ def _installed_sdks():
     return result
 
 
-def _fetch_artifactory_versions():
-    user = os.environ.get('ARTIFACTORY_USER', '')
-    password = os.environ.get('ARTIFACTORY_PASS', '')
-    url = _ART_LIST_API + '?list&deep=0&listFolders=0'
-    req = urllib.request.Request(url)
-    if user and password:
-        creds = base64.b64encode(f'{user}:{password}'.encode()).decode()
-        req.add_header('Authorization', f'Basic {creds}')
-    try:
-        with urllib.request.urlopen(req, timeout=6) as resp:
-            data = _json.loads(resp.read())
-    except Exception:
-        return []
-    versions = []
-    for f in data.get('files', []):
-        m = re.search(
-            r'sdk-philips-imx8mp-delta-transport-(\d+\.\d+\.\d+)\+dev\.(\d+)\.tar\.gz$',
-            f['uri'],
-        )
-        if m:
-            versions.append({
-                'version': 'v' + m.group(1),
-                'run': int(m.group(2)),
-                'art_version': m.group(1) + '+dev.' + m.group(2),
-                'filename': f['uri'].split('/')[-1],
-            })
-    versions.sort(key=lambda x: (_sdk_version_key(x['version']), x['run']), reverse=True)
-    return versions
 
-
-def _start_sdk_install(version, art_version):
+def _start_sdk_install(version):
     """Start an SDK install subprocess. Deduplicates via lock file. Returns a jsonify response."""
-    user = os.environ.get('ARTIFACTORY_USER', '')
-    password = os.environ.get('ARTIFACTORY_PASS', '')
-    if not user or not password:
-        return jsonify({'error': 'No Artifactory credentials. Set ARTIFACTORY_USER and ARTIFACTORY_PASS environment variables.'}), 403
+    if not _SDK_BASE_URL or not _SDK_PACKAGE_NAME:
+        return jsonify({'error': 'SDK_BASE_URL and SDK_PACKAGE_NAME must be configured to install SDKs remotely'}), 503
     sdk_vdir = os.path.join(_SDK_DIR, version)
-    sysroot = os.path.join(sdk_vdir, _SDK_SYSROOT_SUBPATH) if _SDK_SYSROOT_SUBPATH else sdk_vdir
+    if _SDK_SYSROOT_SUBPATH:
+        sysroot = os.path.join(sdk_vdir, _SDK_SYSROOT_SUBPATH)
+    else:
+        sysroot = sdk_vdir
     lock = os.path.join(sdk_vdir, '.installing')
     if os.path.isdir(sysroot) and not os.path.exists(lock):
         return jsonify({'status': 'already_installed', 'version': version})
@@ -911,10 +878,9 @@ def _start_sdk_install(version, art_version):
     os.makedirs(sdk_vdir, mode=0o755, exist_ok=True)
     log_path = os.path.join(sdk_vdir, '.install.log')
     install_script = os.path.join(sdk_vdir, '.run-install.sh')
-    url = f'{_ART_BASE}/sdk-philips-imx8mp-delta-transport-{art_version}.tar.gz'
+    url = f'{_SDK_BASE_URL}/{_SDK_PACKAGE_NAME}-{version}.tar.gz'
     try:
         req = urllib.request.Request(url, method='HEAD')
-        req.add_header('Authorization', 'Basic ' + base64.b64encode(f'{user}:{password}'.encode()).decode())
         with urllib.request.urlopen(req, timeout=10) as resp:
             content_length = int(resp.headers.get('Content-Length', 0))
     except Exception:
@@ -930,7 +896,7 @@ def _start_sdk_install(version, art_version):
         f"trap 'echo FAILED >> {sq(log_path)}; rm -f {sq(lock)} {sq(pid_file)} {sq(install_script)}' ERR\n"
         f'touch {sq(lock)}\n'
         f"echo 'Downloading {url} ...' > {sq(log_path)}\n"
-        f'curl -fsSL --retry 3 --retry-delay 5 -u {sq(user + ":" + password)} {sq(url)} | tar xz -C {sq(sdk_vdir)}\n'
+        f'curl -fsSL --retry 3 --retry-delay 5 {sq(url)} | tar xz -C {sq(sdk_vdir)}\n'
         f'SH_FILE=$(ls {sq(sdk_vdir)}/*.sh 2>/dev/null | head -1) || true\n'
         f'if [[ -n "$SH_FILE" ]]; then\n'
         f'  echo "Running SDK installer: $SH_FILE ..." >> {sq(log_path)}\n'
@@ -963,17 +929,9 @@ def sdk_api():
 
     if action == 'status' and request.method == 'GET':
         installed = _installed_sdks()
-        available = _fetch_artifactory_versions()
-        installed_vers = {s['version'] for s in installed if s['installed']}
-        for av in available:
-            sysroot = os.path.join(_SDK_DIR, av['version'], _SDK_SYSROOT_SUBPATH) if _SDK_SYSROOT_SUBPATH else os.path.join(_SDK_DIR, av['version'])
-            av['installed'] = av['version'] in installed_vers
-            av['ready'] = os.path.isdir(sysroot)
-            av['installing'] = os.path.exists(os.path.join(_SDK_DIR, av['version'], '.installing'))
         return jsonify({
             'installed': installed,
-            'available': available,
-            'has_credentials': bool(os.environ.get('ARTIFACTORY_USER')),
+            'has_remote': bool(_SDK_BASE_URL),
             'sdk_dir': _SDK_DIR,
         })
 
@@ -1018,10 +976,9 @@ def sdk_api():
 
     if action == 'install' and request.method == 'POST':
         version = re.sub(r'[^0-9a-zA-Z._+]', '', request.form.get('version', ''))
-        art_version = re.sub(r'[^0-9a-zA-Z._+]', '', request.form.get('art_version', ''))
-        if not version or not art_version:
-            return jsonify({'error': 'Missing version or art_version'}), 400
-        return _start_sdk_install(version, art_version)
+        if not version:
+            return jsonify({'error': 'Missing version'}), 400
+        return _start_sdk_install(version)
 
     if action == 'cancel' and request.method == 'POST':
         version = re.sub(r'[^0-9a-zA-Z._+]', '', request.form.get('version', ''))
