@@ -27,7 +27,7 @@
         <a href="{{ url_for('revisions') }}" style="font-size:13px">View Revisions &rarr;</a>
     </div>
     <div id="sdk-status-body" style="font-size:0.88rem;padding:4px 0">
-        <span style="color:#888;font-style:italic">Checking SDK status&hellip;</span>
+        <span style="color:#656d76;font-style:italic">Checking SDK status&hellip;</span>
     </div>
     <div style="border-top:1px solid #d0d7de;margin-top:10px;padding-top:8px;display:flex;align-items:center;gap:8px;font-size:0.82rem;background:#f6f8fa;margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px;padding-bottom:8px">
         <span style="color:#656d76">Auto-install (midnight &amp; reboot):</span>
@@ -60,7 +60,7 @@
     </div>
 
     <div class="card">
-        <h2>Crashes per Device <span style="font-size:12px; font-weight:normal; color:#888;">({{ newest_rev }})</span></h2>
+        <h2>Crashes per Device <span style="font-size:12px; font-weight:normal; color:#656d76;">({{ newest_rev }})</span></h2>
         <table>
             <thead><tr><th>Device</th><th style="text-align:right">Crashes</th></tr></thead>
             <tbody>
@@ -180,7 +180,7 @@
         if (installing.length > 0) {
             var iv = installing[0].version;
             html += '<div style="margin-top:8px;padding:8px;background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;font-size:0.85rem">';
-            html += '<strong>Installing ' + iv + ':</strong> <span id="sdk-install-log-' + iv + '"><span style="color:#3498db">Fetching log&hellip;</span></span>';
+            html += '<strong>Installing ' + iv + ':</strong> <span id="sdk-install-log-' + iv + '"><span style="color:#0969da">Fetching log&hellip;</span></span>';
             html += '</div>';
         }
         el.innerHTML = html;
@@ -224,7 +224,7 @@
             var body = document.getElementById('sdk-autolog-body');
             if (body) body.textContent = log || 'No auto-install log yet.';
             if (!summary) return;
-            if (!log) { summary.textContent = 'no runs yet'; summary.style.color = '#888'; return; }
+            if (!log) { summary.textContent = 'no runs yet'; summary.style.color = '#656d76'; return; }
             var lines = log.split('\n');
             var last = lines[lines.length - 1] || '';
             var tsMatch = null;
@@ -242,7 +242,7 @@
             } else {
                 var msgM = last.match(/\[[^\]]+\]\s*(.*)/);
                 summary.textContent = prefix + (msgM && msgM[1] ? ' \u2014 ' + msgM[1].substring(0, 50) : '');
-                summary.style.color = '#888'; summary.style.fontWeight = '';
+                summary.style.color = '#656d76'; summary.style.fontWeight = '';
             }
         }).catch(function() {});
     }
