@@ -1,73 +1,6 @@
+# Replace YOUR_DOMAIN with your actual domain name (e.g. crashweb.example.com)
 http:
   middlewares:
-    auth:
-      basicAuth:
-        usersFile: "/run/secrets/traefik-auth-users" # Path to the file containing user credentials
-    ldap-auth:
-      plugin:
-        ldapAuth:
-          headers:
-            - username:X-Forwarded-User
-            - email:X-Forwarded-Email
-            - groups:X-Forwarded-Groups
-          bindPassword: '{{ env "LDAP_BIND_PASS" }}'
-          bindDN: '{{ env "LDAP_BIND_USER" }}'
-          baseDN: "DC=code1,DC=emi,DC=philips,DC=com"
-          searchFilter: '(|(cn=\{\{.Username\}\})(mail=\{\{.Username\}\}))'
-          attribute: "sAMAccountName"
-          allowedGroups:
-            - "CN=ggGLBAPPGRP1-25316-synergy-dashboard-editor,OU=Groups,OU=GLBAPPGRP1,OU=CODE,DC=code1,DC=emi,DC=philips,DC=com"
-          serverList:
-            url: "ldaps://nlvhtcway1dc001.code1.emi.philips.com"
-            port: "636"
-            CertificateAuthority: |-
-              -----BEGIN CERTIFICATE-----
-              MIIHAzCCBOugAwIBAgIQcngHhSc9PJRH6ONw7v5BBDANBgkqhkiG9w0BAQ0FADAY
-              MRYwFAYDVQQDEw1DT0RFMSBSb290IENBMB4XDTIzMTIxNDE0NDYyOVoXDTQzMTIx
-              NDE0NTYyOVowGDEWMBQGA1UEAxMNQ09ERTEgUm9vdCBDQTCCAiIwDQYJKoZIhvcN
-              AQEBBQADggIPADCCAgoCggIBAJ+Qs+w/nfh7Z7cwcRDwgee4qmjuK/vy24cmZc5N
-              QZZzZ8k2nBbhluWsP+/R1L1vpnGsOVJd5KdxjEfSEEfpZiZYOWJ3YF2zjv9rBBAd
-              lmUxpepFpmC2vnfNUFB4ihbz7T2GLUDh5aybvhf/3EYL3e2mr0ccRFylSZB4MC3H
-              RuV03wCQLn6wMidxio0EbTqpufgzcMHNAf7/LIO3A6YhnBJV8NEF6rLHO75T9O+m
-              4KJ1nnRdauPKR8MDHWWuGuqeRwTZJMogRSWvHrgw8HnIKBmoMqBJNbtECkDeWbZb
-              HChBEOS13twX2tyi3Tc8UcZzYOZlPKDXGDWYK9IXBfmLe1xK69l3Ll9hBGjVSSAj
-              xDahd80FlXUeoVGpAJ89p37ijwMcFQu/gPZDBkj3BXgJQmkLFjEdYoSmzleYvCTA
-              2hqgYSFeeeOrrrUc2+lUZatslkZXypLbxRop4gK89ywEFL1SGVMxKJopvWmTcfNv
-              +bZQO6LUT14dvbajWqzEUqB2eMX5I91xNIwL0JEm/PQbyDNQQBsW0PXezPxgnMtm
-              DzVihDsk1HufKpuWc/RaFpKsls6bj5SLwLYTSbcBP3BZ86lrVb6DcFkaIbNjcVA9
-              zA//45aOWEQ2p1BhfKeU2ynGukReRZOZeqbN4NxcY16SusKbCY+D1FFUQVjKRvW2
-              efA9AgMBAAGjggJHMIICQzALBgNVHQ8EBAMCAcYwEgYDVR0TAQH/BAgwBgEB/wIB
-              AjAdBgNVHQ4EFgQUxQZqu15wkTCPJQh94Etz72LdFgwwPAYDVR0fBDUwMzAxoC+g
-              LYYraHR0cDovL3g1MDkucGhpbGlwcy5jb20vY3JsL0NPREUxUm9vdENBLmNybDAQ
-              BgkrBgEEAYI3FQEEAwIBADCCAVoGA1UdIASCAVEwggFNMIIBSQYMKwYBBAGNcAEF
-              AQEBMIIBNzCB9gYIKwYBBQUHAgIwgekegeYAVABoAGUAIABDAE8ARABFADEAIABS
-              AG8AbwB0ACAAQwBBACAAQwBlAHIAdABpAGYAaQBjAGEAdABlACAAaQBzACAAaQBu
-              AHQAZQBuAGQAZQBkACAAbwBuAGwAeQAgAGYAbwByACAAdgBlAHIAaQBmAHkAaQBu
-              AGcAIABDAE8ARABFADEAIABJAHMAcwB1AGkAbgBnACAAQwBBACAAQwBlAHIAdABp
-              AGYAaQBjAGEAdABlAHMAIABhAG4AZAAgAEMATwBEAEUAMQAgAFIAbwBvAHQAIABD
-              AEEAIABDAFIATAAnAHMALjA8BggrBgEFBQcCARYwaHR0cDovL3g1MDkucGhpbGlw
-              cy5jb20vY3BzL1BoaWxpcHNSb290Q0FDUFMucGRmMFMGCCsGAQUFBwEBBEcwRTBD
-              BggrBgEFBQcwAoY3aHR0cDovL3g1MDkucGhpbGlwcy5jb20vcm9vdGNlcnRpZmlj
-              YXRlL0NPREUxUm9vdENBLmNydDANBgkqhkiG9w0BAQ0FAAOCAgEAZpVmoZsottTP
-              AVe+ijJlri0fniYqNMli/1CsPBBNZ0M456vkigtAfVH6dxc6C55iJwUVYkhYs5yv
-              t8U2HUW5giCwhffnuYr9ZIIBv+eXshKgoCP0wBGgqiozrWLsbNnMVsBloEJhyMtd
-              bAOnHz5aBKE+3RYE+JB1iKnE3EDp+WSqORg1Q0yR5j69GIn8RKQZaut5oPsc7kHq
-              +9dLX+txUwSQA2uK1uP5hWNcG40TSKE9HizDILgLPyjlB95UIQRTHBZMqrmjmIQn
-              fAedk7/PpnibOHLPIMXftjw2U27tsGe/c0OkJWp9PnyqBp+MAJB1hsDhtr+7JibJ
-              EXGzs0vkOaqT/B5k8f8CHB8Myxwj0Xp62x44snbT8U0sBvtEYGj4Ux+nTmT3UTSw
-              19SCWT+pIszQ8ZGUdPlJ1QWildkVL5HqVOJmwd2fYc0nU/8peU/DVuI6EInshK0X
-              zBgWM5ky+dBRoPvxDgWEYWVuf8spni7pc5m4YUIeRjbKjE8d0Ot5cbJSaw75CmpM
-              jHJFdWmNRDW/PP2wK+Atrvsx8Su78xtJj4vFryhTTMjKRuKChcLxp/ML5vOPUjUb
-              ilZNHpOOVfQB3uVuM4WfeyA0rbYQTFcUbHxzUlJC4TfwIvYCNNVRO12PQdbyOfKg
-              AaZQgs+p8TkD8HJMkocdaqAC7P5IesY=
-              -----END CERTIFICATE-----
-
-    ip-whitelist:
-      ipAllowList:
-        sourceRange:
-          - "10.218.40.0/21" #BBN Devlan IP range
-          # You can add other allowed IPs if needed
-
     api-headers:
       headers:
         accessControlAllowMethods:
@@ -86,21 +19,19 @@ http:
         permanent: true
 
   routers:
-    coredumps-http:
-      rule: Host(`coredumps.synergy.philips.com`)
+    crashweb-http:
+      rule: Host(`YOUR_DOMAIN`)
       entryPoints:
         - http
       middlewares:
         - redirect-to-https
       service: flask-service
 
-    coredumps-router:
-      rule: Host(`coredumps.synergy.philips.com`)
+    crashweb-router:
+      rule: Host(`YOUR_DOMAIN`)
       service: flask-service
       entryPoints:
         - https
-      middlewares:
-        - ldap-auth
       tls: true
 
   services:
@@ -113,6 +44,5 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: "/etc/ssl/certs/coredumps_synergy_philips_com.pem"
-        keyFile: "/run/secrets/ssl_key_file_v1_3"
-
+        certFile: "/etc/ssl/certs/crashweb.pem"
+        keyFile: "/run/secrets/ssl_key_file"
