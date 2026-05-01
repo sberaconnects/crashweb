@@ -1,257 +1,133 @@
-# synergy-coredump-web
+# crashweb
 
-## Description
-
-synergy-coredump-web is a web service for browsing, analysing, and triaging
-coredumps collected from Synergy devices.
-
-The application is written in Python (Flask + gunicorn) and backed by MariaDB.
-Traefik runs in front as a reverse proxy, handling LDAP authentication and
-HTTPS termination.
-
-## Overview
-
-1. [CONTRIBUTING.md](./CONTRIBUTING.md)
-2. [LICENSE](./LICENSE)
-3. [DOCUMENTATION](./docs)
+A self-hosted web UI for collecting, browsing, and analyzing coredumps from embedded Linux devices.
 
 ## Features
 
 | Page | URL | Description |
 |------|-----|-------------|
-| Dashboard | `/` | Stats, top crashing binaries (with crash cause classification), crashes per device, recent coredumps, SDK status |
-| Coredumps | `/cores` | Filterable list — SW revision, signal, device, binary (dropdown), BT checksum, process |
-| Core detail | `/cores/<id>` | Metadata, backtrace (with copy button), journal, related crashes, ticket marking, GitHub issue creation, SDK install |
+| Dashboard | `/` | Stats, top crashing binaries with cause classification, recent coredumps |
+| Coredumps | `/cores` | Filterable list by device, SW revision, signal, binary, backtrace checksum |
+| Core detail | `/core/<id>` | Metadata, backtrace, journal, related crashes, ticket marking, GitHub issue creation |
 | Devices | `/devices` | All known devices with crash counts |
-| Device detail | `/devices/<id>` | Per-device coredump list |
+| Device detail | `/device/<id>` | Per-device coredump list |
 | SW Revisions | `/revisions` | All SW revisions with crash counts and SDK install status |
-| Crash Analysis | `/analyze` | Per-binary/process crash grouping by backtrace signature — systematic bug detection, cause badges, ticket marks |
+| Crash Analysis | `/analyze` | Crash grouping by backtrace signature — systematic bug detection, cause badges |
 
-### Key features
+Key capabilities:
 
-- **Ticket / Mark-as-analyzed** — mark any crash signature with a GitHub issue
-  number. The mark propagates across all pages (dashboard, cores, analyze)
-  based on backtrace checksum.
-- **Create GitHub Issue** — pre-fills title and full markdown body (process,
-  signal, device, SW rev, backtrace) in GitHub `issues/new`. After opening,
-  an inline prompt lets you enter the new issue number and mark the crash
-  immediately.
-- **Crash cause classification** — automatically detects Watchdog Timeout, OOM
-  Kill, Stack Smash, Bus Error, and Segfault from journal lines.
-- **Systematic bug detection** — flags crash signatures seen on more than one
-  device.
-- **SDK management** — install/cancel Artifactory SDK downloads per revision,
-  used by the collector to generate backtraces. Auto-install runs at midnight
-  and on reboot via cron.
-- **Coredump download** — direct download of `.core.gz` files with path
-  traversal protection.
+- **Crash cause classification** — detects Watchdog Timeout, OOM Kill, Stack Smash, Bus Error, Segfault from journal lines
+- **Systematic bug detection** — flags crash signatures seen on more than one device
+- **Ticket / Mark-as-analyzed** — mark any crash signature with an issue number, propagated across all pages
+- **Create GitHub Issue** — pre-fills title and backtrace in GitHub `issues/new` (requires `GITHUB_REPO`)
+- **SDK management** — install SDKs per revision for backtrace generation (requires `SDK_BASE_URL`)
+- **Coredump download** — direct download of `.core.gz` files with path traversal protection
+
+## Stack
+
+- **Flask** (Python 3) + gunicorn
+- **MariaDB 10.6**
+- **Traefik 3.6.7** (reverse proxy + TLS)
+- **Docker Compose**
+
+## Quick Start (local, no TLS)
+
+```bash
+# 1. Clone
+git clone https://github.com/sbera.connects/crashweb
+cd crashweb
+
+# 2. Configure
+cp .env.example .env
+# Edit .env — at minimum set SECRET_KEY to a random string:
+#   SECRET_KEY=$(openssl rand -hex 32)
+
+# 3. Start (no Traefik — Flask on port 8080)
+docker compose -f docker-compose.yml -f docker-compose-local.yml up -d mariadb flask-web ccs
+
+# 4. Open http://localhost:8080
+```
+
+## Production Deployment
+
+```bash
+cp .env.example .env
+# Fill in SECRET_KEY and any optional settings
+
+# Edit traefik/traefik_dynamic-prod.yml:
+#   - Replace YOUR_DOMAIN with your domain name
+#   - Set certFile path to your TLS certificate
+
+# Place SSL key at: ~/.ssh/crashweb.key
+
+docker compose -f docker-compose.yml -f docker-compose-production.yml up -d --build
+```
+
+## Configuration
+
+All settings via environment variables (or `.env` file). See `.env.example` for full list.
+
+| Variable | Required | Description |
+| -------- | -------- | ----------- |
+| `SECRET_KEY` | Yes | Flask secret key — any long random string |
+| `GITHUB_REPO` | No | `owner/repo` — enables "Create GitHub Issue" button |
+| `SDK_BASE_URL` | No | Base URL for SDK downloads — enables remote SDK install |
+| `SDK_PACKAGE_NAME` | No | SDK tarball name prefix (e.g. `my-device-sdk`) |
+| `SDK_VERSION` | No | Version to auto-install on container start |
+| `SDK_SYSROOT_SUBPATH` | No | Subdir inside SDK dir that marks install complete |
+| `DB_HOST` | No | MariaDB host (default: `mariadb`) |
+| `DB_USER` | No | DB user (default: `apache`) |
+| `DB_PASSWORD` | No | DB password (default: empty) |
+| `DB_NAME` | No | DB name (default: `coredumps`) |
+
+## Device Setup
+
+Devices send coredumps to the `ccs` service on port 5555. The collector service:
+
+1. Receives the coredump file
+2. Stores it to `COREDUMP_DIR` (`/home/coredumps` on the host)
+3. Records metadata in MariaDB
+4. Triggers backtrace generation (if SDK installed for the SW revision)
+
+## SDK Installation
+
+Backtraces require the matching SDK (cross-compiled sysroot) for the target device SW revision.
+
+**Local:** Place SDKs in `/home/sdks/{version}/` on the host. The version dir must contain a sysroot (or set `SDK_SYSROOT_SUBPATH` appropriately).
+
+**Remote:** Set `SDK_BASE_URL` and `SDK_PACKAGE_NAME`. The app will download `{SDK_BASE_URL}/{SDK_PACKAGE_NAME}-{version}.tar.gz` on demand. If the tarball contains a `.sh` installer, it runs automatically.
 
 ## Development
 
-### Local testing (Flask + MariaDB, no Traefik/LDAP)
+```bash
+cp .env.example .env
+# Set SECRET_KEY in .env
 
-A lightweight override (`docker-compose-local.yml`) exposes Flask directly on
-port **8080** and stores all data under `./data/` inside the repo.
+# Generate local certs (required for TLS in dev)
+mkdir -p certs
+openssl req -x509 -newkey rsa:4096 -keyout certs/localhost.key \
+  -out certs/localhost.crt -days 365 -nodes \
+  -subj '/CN=coredumps.localhost'
 
-#### Prerequisites
+# Add to /etc/hosts: 127.0.0.1 coredumps.localhost
 
-- Docker with Compose plugin (`docker compose version`)
-- No other service bound to port `8080`
+docker compose -f docker-compose.yml -f docker-compose-dev.yml up -d
+# Flask hot-reloads on code changes
+# UI: https://coredumps.localhost
+```
 
-#### First-time setup
+### Running Tests
 
 ```bash
-mkdir -p data/coredumps data/mariadb data/sdks
+cd web
+pip install -r requirements.txt
+pytest tests/ -v
 ```
 
-#### Start the stack
+## License
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose-local.yml up -d mariadb flask-web ccs
-```
+See [LICENSE](./LICENSE).
 
-MariaDB initialises its schema automatically from `docker/ccs/sql/` on first
-start (when `./data/mariadb/` is empty). Wait ~5 seconds, then open:
+## Contributing
 
-```
-http://localhost:8080/
-```
-
-#### Rebuild after code changes
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose-local.yml build flask-web \
-  && docker compose -f docker-compose.yml -f docker-compose-local.yml up -d --force-recreate flask-web
-```
-
-#### Stop the stack
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose-local.yml down
-```
-
-> **Note:** `docker-compose-local.yml` and `./data/` are for local development
-> only and must **not** be used on the production server.
-
-### Development override (with Traefik + hot-reload)
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose-dev.yml up --build
-```
-
-Requires local TLS certificates:
-
-```bash
-mkcert -key-file $PWD/certs/localhost.key -cert-file $PWD/certs/localhost.crt localhost 127.0.0.1 ::1
-```
-
-Endpoint: `https://coredumps.localhost`
-
-### Running tests
-
-```bash
-/path/to/.venv/bin/pytest web/tests/ -v
-```
-
-Tests cover `ticket_api` validation, mark/unmark, `_github_url`, `badge_color`,
-and `_fetch_tickets` error handling. No real DB or network required — all DB
-calls are mocked. `test_app.py` adds `docker/shared/` to `sys.path` so that
-`bt_utils` is importable without installing it.
-
-## Deployment
-
-Deployment is automated via GitHub Actions on push to `main`
-(see `.github/workflows/deploy-production.yml`). The workflow:
-
-1. Stops the existing compose stack (`docker compose down`)
-2. Rsyncs the repo to `~/coredump-server/` on the runner
-3. Runs `docker compose -f docker-compose.yml -f docker-compose-production.yml up -d --build --force-recreate`
-
-### First-time production DB migration
-
-MariaDB init scripts only run when the data directory is empty. On an existing
-production DB, run once:
-
-```bash
-docker exec coredump-server-mariadb-1 mariadb -u root coredumps -e "
-CREATE TABLE IF NOT EXISTS \`cla_ticket\` (
-  \`clt_id\` int(11) NOT NULL AUTO_INCREMENT,
-  \`clt_bt_csum\` varchar(64) NOT NULL,
-  \`clt_issue\` varchar(32) NOT NULL,
-  \`clt_note\` varchar(255) DEFAULT NULL,
-  \`clt_created_at\` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (\`clt_id\`),
-  UNIQUE KEY \`clt_csum_unique\` (\`clt_bt_csum\`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-GRANT INSERT, UPDATE, DELETE ON coredumps.cla_ticket TO 'apache'@'%';
-FLUSH PRIVILEGES;
-"
-```
-
-Both statements are idempotent and safe to re-run.
-
-## Architecture
-
-### System overview
-
-```mermaid
-flowchart TD
-    Browser -->|HTTPS 443| Traefik
-    Traefik -->|LDAP auth\nTLS termination| Traefik
-    Traefik -->|HTTP 8080| FlaskWeb["flask-web\n(gunicorn 2 workers)"]
-    FlaskWeb <-->|SQL| MariaDB[("MariaDB 10.6\ndatabase: coredumps")]
-    FlaskWeb -->|read| Coredumps["/var/www/html/coredumps\n(bind mount)"]
-    FlaskWeb <-->|read/write| SDKs["/var/www/sdks\n(bind mount)"]
-
-    Device["Synergy Device"] -->|TCP 5555\ncore + journal| CCS["ccs\n(collector, port 5555)"]
-    CCS -->|store .core.gz| Coredumps
-    CCS -->|INSERT core + journal| MariaDB
-    CCS -->|gdb-multiarch| SDKs
-    CCS -->|trigger install\nHTTP POST| FlaskWeb
-
-    FlaskWeb -->|download tarballs| Artifactory["Artifactory\n(SDK storage)"]
-
-    subgraph Docker host
-        Traefik
-        FlaskWeb
-        CCS
-        MariaDB
-        Coredumps
-        SDKs
-    end
-```
-
-- **Flask** (gunicorn, 2 workers) listens on port `8080` internally
-- **MariaDB 10.6** — database `coredumps`, `apache` user has `SELECT` on all
-  tables plus `INSERT/UPDATE/DELETE` on `cla_ticket`
-- **ccs** — coredump collector service (port `5555`)
-- All secrets (LDAP bind, Artifactory credentials, TLS key) are injected via
-  environment variables and Docker secrets
-
-### Coredump ingestion pipeline
-
-```mermaid
-sequenceDiagram
-    participant Dev as Synergy Device
-    participant CCS as ccs (collector)
-    participant DB as MariaDB
-    participant Art as Artifactory
-    participant Flask as flask-web
-
-    Dev->>CCS: TCP connect :5555<br/>filename + build + device_ip
-    Dev->>CCS: .core.gz binary stream
-    Dev->>CCS: 100× journal entries (timestamp + message)
-    CCS->>DB: INSERT cla_core (signal, process, device, sw_rev)
-    CCS->>DB: INSERT cla_journal (100 lines)
-    CCS->>DB: UPDATE cla_core SET clc_core_binary (from ELF NT_FILE note)
-
-    alt SDK already installed
-        CCS->>CCS: gdb-multiarch → extract backtrace frames
-        CCS->>DB: INSERT cla_backtrace (frame lines)
-        CCS->>DB: UPDATE cla_core SET clc_bt_csum (bt_utils._bt_signature)
-    else SDK missing
-        CCS->>DB: INSERT cla_backtrace "[Pending: SDK installing…]"
-        CCS->>Flask: POST /sdk_api action=install
-        Flask->>Art: Download SDK tarball
-        Art-->>Flask: tar.gz stream → /var/www/sdks/vX.Y.Z/
-        Flask-->>CCS: 200 OK
-        CCS->>CCS: background thread polls SDK dir (up to 1 h)
-        CCS->>CCS: gdb-multiarch → extract backtrace frames
-        CCS->>DB: DELETE + re-INSERT cla_backtrace
-        CCS->>DB: UPDATE cla_core SET clc_bt_csum
-    end
-```
-
-### Shared code (`docker/shared/`)
-
-`docker/shared/bt_utils.py` is the single source of truth for backtrace
-normalisation and signature hashing. Both `ccs` (ingest time) and `flask-web`
-(query/display time) copy this file into their images at build time, ensuring
-the `clc_bt_csum` stored in the DB is always computed with the same algorithm.
-
-```mermaid
-graph LR
-    Shared["docker/shared/bt_utils.py\n(single source of truth)"]
-    Shared -->|COPY at build time| CCSImage["ccs image\ncs.py → _bt_signature()"]
-    Shared -->|COPY at build time| WebImage["flask-web image\napp.py → _bt_signature()"]
-    CCSImage -->|writes clc_bt_csum| DB[("MariaDB")]
-    WebImage -->|reads clc_bt_csum\nfor grouping| DB
-```
-
-| Export | Purpose |
-|--------|---------|
-| `_normalize_bt_line(line)` | Strip hex addresses, `<...>` values, `=N` params |
-| `_is_abort_frame(line)` | Detect signal/abort boilerplate frames |
-| `_strip_leading_abort_frames(lines)` | Remove leading abort frames before hashing |
-| `_bt_signature(lines, max_frames=4)` | MD5 of top 4 normalised non-abort frames |
-
-### Build context
-
-The `ccs` service uses the repo root as its Docker build context (instead of
-`docker/ccs/`) so that both `docker/ccs/` and `docker/shared/` are accessible
-in the same build. A `.dockerignore` at the repo root excludes `data/` to
-prevent permission-denied errors from Docker's build context scanner.
-
-## Licenses
-
-See [LICENSE](./LICENSE)
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
