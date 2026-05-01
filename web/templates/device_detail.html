@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Device: {{ device.cla_eqm_name }}{% endblock %}
+{% block title %}Device: {{ device.cla_eqm_name }} · CrashWeb{% endblock %}
 {% block content %}
 <div class="breadcrumb">
-    <a href="{{ url_for('devices') }}">Devices</a> / <strong>{{ device.cla_eqm_name }}</strong>
+    <a href="{{ url_for('devices') }}">Devices</a> › <strong>{{ device.cla_eqm_name }}</strong>
 </div>
 
 <h1>{{ device.cla_eqm_name }}</h1>
