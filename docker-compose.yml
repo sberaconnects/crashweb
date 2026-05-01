@@ -11,16 +11,11 @@ services:
       - "--entrypoints.https.address=:443"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.file.filename=/etc/traefik/traefik_dynamic.yml"
-      - "--experimental.plugins.ldapAuth.modulename=github.com/wiltonsr/ldapAuth"
-      - "--experimental.plugins.ldapAuth.version=v0.1.11"
       - "--log.level=INFO"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
       - "traefik.enable=true"
-    environment:
-      LDAP_BIND_USER: ${LDAP_BIND_USER}
-      LDAP_BIND_PASS: ${LDAP_BIND_PASS}
     networks:
       - web
     restart: 'always'
@@ -40,6 +35,7 @@ services:
       - '5555:5555'
     networks:
       - default
+
   flask-web:
     image: "ccs-flask-web"
     build:
@@ -52,11 +48,15 @@ services:
       - "/home/sdks:/var/www/sdks"
       - "/home/coredumps:/var/www/html/coredumps"
     environment:
-      - ARTIFACTORY_USER=${ARTIFACTORY_USER:-}
-      - ARTIFACTORY_PASS=${ARTIFACTORY_PASS:-}
+      - SECRET_KEY=${SECRET_KEY}
+      - SDK_BASE_URL=${SDK_BASE_URL:-}
+      - SDK_PACKAGE_NAME=${SDK_PACKAGE_NAME:-}
+      - SDK_SYSROOT_SUBPATH=${SDK_SYSROOT_SUBPATH:-}
+      - GITHUB_REPO=${GITHUB_REPO:-}
     networks:
       - web
       - default
+
   mariadb:
     image: mariadb:10.6
     environment:

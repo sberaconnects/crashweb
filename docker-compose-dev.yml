@@ -8,13 +8,10 @@ services:
       - "--entrypoints.https.address=:443"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.file.filename=/etc/traefik/traefik_dynamic.yml"
-      - "--experimental.plugins.ldapAuth.modulename=github.com/wiltonsr/ldapAuth"
-      - "--experimental.plugins.ldapAuth.version=v0.1.11"
       - "--log.level=DEBUG"
     volumes:
       - ${PWD}/certs:/etc/ssl/custom-certs:ro
       - ${PWD}/traefik/traefik_dynamic-dev.yml:/etc/traefik/traefik_dynamic.yml:ro
-      - ${PWD}/traefik/auth-users-dev:/run/secrets/traefik-auth-users:ro
   flask-web:
     command: ["flask", "run", "--host", "0.0.0.0", "--port", "8080", "--reload"]
     environment:

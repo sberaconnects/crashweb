@@ -3,20 +3,18 @@ services:
   traefik:
     command:
       - "--providers.docker=true"
-      - "--entrypoints.http.address=:80" 
+      - "--entrypoints.http.address=:80"
       - "--entrypoints.https.address=:443"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.file.filename=/etc/traefik/traefik_dynamic.yml"
-      - "--experimental.plugins.ldapAuth.modulename=github.com/wiltonsr/ldapAuth"
-      - "--experimental.plugins.ldapAuth.version=v0.1.11"
       - "--log.level=INFO"
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /etc/pki:/etc/pki:ro
       - ${PWD}/traefik/traefik_dynamic-prod.yml:/etc/traefik/traefik_dynamic.yml:ro
     secrets:
-      - ssl_key_file_v1_3
+      - ssl_key_file
 
 secrets:
-  ssl_key_file_v1_3:
-    file: ${HOME}/.ssh/coredumps_synergy_philips_com.key
+  ssl_key_file:
+    file: ${HOME}/.ssh/crashweb.key
