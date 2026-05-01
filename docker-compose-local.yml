@@ -6,17 +6,22 @@ services:
 
   ccs:
     volumes:
-      - "./data/coredumps:/space/coredumps"
-      - "./data/sdks:/space/sdks"
+      - coredumps:/space/coredumps
+      - sdks:/space/sdks
 
   flask-web:
     ports:
       - "8080:8080"
     volumes:
-      - "./data/sdks:/var/www/sdks"
-      - "./data/coredumps:/var/www/html/coredumps"
+      - sdks:/var/www/sdks
+      - coredumps:/var/www/html/coredumps
 
   mariadb:
     volumes:
-      - "./data/mariadb:/var/lib/mysql"
-      - "./docker/ccs/sql:/docker-entrypoint-initdb.d:ro"
+      - mariadb:/var/lib/mysql
+      - ./docker/ccs/sql:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  coredumps:
+  sdks:
+  mariadb:
