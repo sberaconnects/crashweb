@@ -3,86 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Coredump Browser{% endblock %}</title>
+    <title>{% block title %}CrashWeb{% endblock %}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; font-size: 14px; }
-        nav { background: #2c3e50; padding: 0 24px; display: flex; align-items: center; gap: 0; }
-        nav a.brand { color: #ecf0f1; font-weight: 700; font-size: 16px; padding: 14px 16px 14px 0; margin-right: 8px; border-right: 1px solid #3d566e; text-decoration: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; background: #f6f8fa; color: #1f2328; font-size: 14px; }
+
+        /* --- Nav --- */
+        nav { background: #24292f; padding: 0 24px; display: flex; align-items: center; gap: 0; }
+        nav a.brand { color: #fff; font-weight: 600; font-size: 15px; padding: 12px 20px 12px 0; margin-right: 4px; text-decoration: none; display: flex; align-items: center; gap: 8px; }
         nav a.brand:hover { color: #fff; text-decoration: none; }
-        nav a.nav-link { color: #bdc3c7; text-decoration: none; font-weight: 500; padding: 14px 16px; transition: all 0.15s; }
-        nav a.nav-link:hover, nav a.nav-link.active { color: #fff; background: #34495e; }
+        nav a.nav-link { color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: color 0.1s, background 0.1s; }
+        nav a.nav-link:hover { color: #fff; text-decoration: none; background: rgba(255,255,255,0.06); }
+        nav a.nav-link.active { color: #fff; background: #373e47; }
+
+        /* --- Layout --- */
         .container { margin: 20px auto; padding: 0 24px; }
-        .breadcrumb { margin-bottom: 16px; font-size: 13px; color: #888; }
-        .breadcrumb a { color: #3498db; text-decoration: none; }
+
+        /* --- Breadcrumb --- */
+        .breadcrumb { margin-bottom: 16px; font-size: 13px; color: #656d76; }
+        .breadcrumb a { color: #0969da; text-decoration: none; }
         .breadcrumb a:hover { text-decoration: underline; }
-        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-        .card h2 { font-size: 16px; margin-bottom: 12px; color: #2c3e50; }
+
+        /* --- Cards --- */
+        .card { background: #fff; border-radius: 6px; border: 1px solid #d0d7de; padding: 20px; margin-bottom: 20px; }
+        .card > h2 { font-size: 16px; color: #1f2328; border-bottom: 1px solid #d0d7de; padding-bottom: 12px; margin-bottom: 16px; }
         h1 { font-size: 22px; margin-bottom: 16px; }
+
+        /* --- Tables --- */
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; white-space: nowrap; }
-        tr:hover { background: #f8f9fa; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #d0d7de; }
+        th { background: #f6f8fa; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #656d76; position: sticky; top: 0; white-space: nowrap; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #f6f8fa; }
         .table-wrapper { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
-        a { color: #3498db; text-decoration: none; }
+
+        /* --- Links --- */
+        a { color: #0969da; text-decoration: none; }
         a:hover { text-decoration: underline; }
-        textarea { width: 100%; min-height: 100px; padding: 12px; font-family: "SF Mono", Monaco, monospace; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; }
-        button, .btn { background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; display: inline-block; text-decoration: none; }
-        button:hover, .btn:hover { background: #2980b9; text-decoration: none; }
+
+        /* --- Inputs --- */
+        textarea { width: 100%; min-height: 100px; padding: 12px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 13px; border: 1px solid #d0d7de; border-radius: 6px; resize: vertical; background: #fff; }
+        textarea:focus { outline: 2px solid #0969da; outline-offset: 0; }
+        input[type="text"], select { padding: 6px 10px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 13px; background: #fff; }
+        input[type="text"]:focus, select:focus { outline: 2px solid #0969da; outline-offset: 0; }
+
+        /* --- Buttons --- */
+        button, .btn { background: #1f2328; color: #fff; border: 1px solid rgba(0,0,0,0.15); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-block; text-decoration: none; }
+        button:hover, .btn:hover { background: #32383f; text-decoration: none; }
         .btn-sm { padding: 4px 10px; font-size: 12px; }
-        .error { background: #fee; border: 1px solid #fcc; color: #c00; padding: 12px; border-radius: 4px; margin-bottom: 16px; }
+        .btn-ghost { background: #f6f8fa; color: #1f2328; border: 1px solid #d0d7de; }
+        .btn-ghost:hover { background: #eaeef2; }
+        .btn-danger { background: #dc3545; border-color: transparent; color: #fff; }
+        .btn-danger:hover { background: #b02a37; }
+
+        /* --- Error --- */
+        .error { background: #ffebe9; border: 1px solid #ff818266; color: #82071e; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+
+        /* --- Pagination --- */
         .pagination { margin-top: 16px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-        .pagination a, .pagination span { padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #333; font-size: 13px; }
-        .pagination a:hover { background: #eee; text-decoration: none; }
-        .pagination .active { background: #3498db; color: white; border-color: #3498db; }
-        .meta { color: #888; font-size: 13px; margin-bottom: 12px; }
+        .pagination a, .pagination span { padding: 5px 10px; border: 1px solid #d0d7de; border-radius: 6px; text-decoration: none; color: #1f2328; font-size: 13px; }
+        .pagination a:hover { background: #f6f8fa; text-decoration: none; }
+        .pagination .active { background: #0969da; color: #fff; border-color: #0969da; }
+
+        /* --- Meta --- */
+        .meta { color: #656d76; font-size: 13px; margin-bottom: 12px; }
+
+        /* --- Truncate --- */
         td.truncate { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         td.truncate:hover { white-space: normal; word-break: break-all; }
+
+        /* --- Stat cards --- */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
-        .stat-card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; text-align: center; cursor: pointer; transition: box-shadow 0.15s, transform 0.15s; }
-        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.18); transform: translateY(-2px); }
-        .stat-card .number { font-size: 32px; font-weight: 700; color: #2c3e50; }
-        .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
-        .filters { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 16px; }
-        .filters label { font-size: 12px; font-weight: 600; color: #666; display: block; margin-bottom: 3px; }
-        .filters select, .filters input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-        .signal-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
-        .signal-badge { background: #dfe6e9; color: #555; }
-        .signal-4 { background: #fab1a0; color: #721c24; }
-        .signal-6 { background: #ffeaa7; color: #856404; }
-        .signal-7 { background: #fab1a0; color: #721c24; }
-        .signal-8 { background: #fab1a0; color: #721c24; }
+        .stat-card { background: #fff; border-radius: 6px; border: 1px solid #d0d7de; padding: 20px; text-align: center; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
+        .stat-card:hover { background: #f6f8fa; border-color: #57606a; text-decoration: none; }
+        .stat-card .stat-icon { color: #656d76; margin-bottom: 8px; display: flex; justify-content: center; }
+        .stat-card .number { font-size: 32px; font-weight: 700; color: #1f2328; }
+        .stat-card .label { font-size: 13px; color: #656d76; margin-top: 4px; }
+
+        /* --- Filters --- */
+        .filters { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+        .filters label { font-size: 12px; font-weight: 600; color: #656d76; display: block; margin-bottom: 3px; }
+
+        /* --- Signal badges (semantic — unchanged) --- */
+        .signal-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #dfe6e9; color: #555; }
+        .signal-4  { background: #fab1a0; color: #721c24; }
+        .signal-6  { background: #ffeaa7; color: #856404; }
+        .signal-7  { background: #fab1a0; color: #721c24; }
+        .signal-8  { background: #fab1a0; color: #721c24; }
         .signal-11 { background: #fab1a0; color: #721c24; }
         .signal-24 { background: #fdcb6e; color: #856404; }
         .signal-25 { background: #fdcb6e; color: #856404; }
         .signal-31 { background: #fab1a0; color: #721c24; }
+
+        /* --- Pre/Code --- */
         .pre-wrap { position: relative; }
-        .pre-wrap .copy-btn { position: absolute; top: 8px; right: 8px; background: #2d2d2d; color: #d4d4d4; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.75; transition: opacity 0.15s, background 0.15s; }
-        .pre-wrap .copy-btn:hover { opacity: 1; background: #3d3d3d; }
-        .pre-wrap .copy-btn.copied { background: #27ae60; border-color: #27ae60; color: white; opacity: 1; }
-        pre { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 13px; line-height: 1.5; font-family: "SF Mono", Monaco, monospace; }
-        pre .line-no { color: #666; user-select: none; display: inline-block; width: 40px; text-align: right; margin-right: 16px; }
-        .tabs { display: flex; gap: 0; border-bottom: 2px solid #eee; margin-bottom: 16px; }
-        .tab { padding: 8px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 500; color: #888; }
-        .tab.active { color: #2c3e50; border-bottom-color: #3498db; }
+        .pre-wrap .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.08); color: #e6edf3; border: 1px solid rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.85; transition: opacity 0.15s, background 0.15s; }
+        .pre-wrap .copy-btn:hover { opacity: 1; background: rgba(255,255,255,0.15); }
+        .pre-wrap .copy-btn.copied { background: #238636; border-color: #238636; color: #fff; opacity: 1; }
+        pre { background: #161b22; color: #e6edf3; padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 13px; line-height: 1.5; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+        pre .line-no { color: #656d76; user-select: none; display: inline-block; width: 40px; text-align: right; margin-right: 16px; }
+
+        /* --- Tabs --- */
+        .tabs { display: flex; border-bottom: 1px solid #d0d7de; margin-bottom: 16px; }
+        .tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; color: #656d76; }
+        .tab.active { color: #1f2328; border-bottom-color: #0969da; }
+        .tab:hover { color: #1f2328; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
+        /* --- Detail grid --- */
         .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .detail-grid .field { }
-        .detail-grid .field-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-grid .field-label { font-size: 11px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: 0.5px; }
         .detail-grid .field-value { font-size: 14px; margin-top: 2px; }
+
+        /* --- Badges (semantic — unchanged) --- */
         .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
         .badge + .badge { margin-left: 4px; }
     </style>
 </head>
 <body>
     <nav>
-        <a class="brand" href="{{ url_for('index') }}">&#128027; Coredump Browser</a>
+        <a class="brand" href="{{ url_for('index') }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            CrashWeb
+        </a>
         <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Dashboard</a>
-        <a class="nav-link {% if request.endpoint == 'cores' %}active{% endif %}" href="{{ url_for('cores') }}">Coredumps</a>
+        <a class="nav-link {% if request.endpoint in ('cores', 'core_detail') %}active{% endif %}" href="{{ url_for('cores') }}">Cores</a>
         <a class="nav-link {% if request.endpoint in ('devices', 'device_detail') %}active{% endif %}" href="{{ url_for('devices') }}">Devices</a>
-        <a class="nav-link {% if request.endpoint == 'revisions' %}active{% endif %}" href="{{ url_for('revisions') }}">SW Revisions</a>
-        <a class="nav-link {% if request.endpoint == 'analyze' %}active{% endif %}" href="{{ url_for('analyze') }}">Analyze</a>
+        <a class="nav-link {% if request.endpoint == 'revisions' %}active{% endif %}" href="{{ url_for('revisions') }}">Revisions</a>
+        <a class="nav-link {% if request.endpoint == 'analyze' %}active{% endif %}" href="{{ url_for('analyze') }}">Analysis</a>
     </nav>
     <div class="container">
         {% block content %}{% endblock %}
