@@ -24,12 +24,13 @@
 ```
 {{ gh_bt_plain | safe }}```
 {%- endset -%}
-{% set gh_url = "https://github.com/philips-internal/synergy-base/issues/new?title=" ~ gh_title|urlencode ~ "&body=" ~ gh_body|urlencode %}
-
+{% if config.GITHUB_REPO %}
+{% set gh_url = "https://github.com/" ~ config.GITHUB_REPO ~ "/issues/new?title=" ~ gh_title|urlencode ~ "&body=" ~ gh_body|urlencode %}
 <textarea id="gh-issue-body" style="display:none;" aria-hidden="true">{{ gh_body }}</textarea>
 <div id="gh-issue-area" style="float:right">
 <a href="{{ gh_url }}" target="_blank" rel="noopener" class="btn" id="gh-issue-btn">&#128030; Create GitHub Issue</a>
 </div>
+{% endif %}
 <h1>Core Dump #{{ core.clc_id }} &mdash; {{ core.clc_core_name }}</h1>
 
 <div class="card">
@@ -67,8 +68,8 @@
                 {% if core.clc_core_file %}
                 <a href="/{{ core.clc_core_file }}" class="btn btn-sm" style="margin-left:8px">Download core.gz</a>
                 {% endif %}
-                {% if art_sdk_url %}
-                <a href="{{ art_sdk_url }}" class="btn btn-sm" style="margin-left:4px;background:#6c757d">Download SDK</a>
+                {% if sdk_download_url %}
+                <a href="{{ sdk_download_url }}" class="btn btn-sm" style="margin-left:4px;background:#6c757d">Download SDK</a>
                 {% endif %}
             </div>
         </div>

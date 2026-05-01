@@ -53,7 +53,7 @@ def make_client():
 class TestGithubUrl(unittest.TestCase):
     def test_numeric_issue_returns_url(self):
         url = flask_app._github_url('15884')
-        assert url == 'https://github.com/philips-internal/synergy-base/issues/15884'
+        assert url == 'https://github.com/test-owner/test-repo/issues/15884'
 
     def test_non_numeric_returns_none(self):
         assert flask_app._github_url('ABC-123') is None
@@ -66,7 +66,15 @@ class TestGithubUrl(unittest.TestCase):
 
     def test_whitespace_stripped(self):
         url = flask_app._github_url('  42  ')
-        assert url == 'https://github.com/philips-internal/synergy-base/issues/42'
+        assert url == 'https://github.com/test-owner/test-repo/issues/42'
+
+    def test_no_github_repo_returns_none(self):
+        """When GITHUB_REPO is not configured, _github_url always returns None."""
+        with flask_app.app.test_request_context():
+            flask_app.app.config['GITHUB_REPO'] = ''
+            result = flask_app._github_url('123')
+            flask_app.app.config['GITHUB_REPO'] = 'test-owner/test-repo'
+        assert result is None
 
 
 class TestBadgeColor(unittest.TestCase):
