@@ -25,8 +25,8 @@ os.environ.setdefault('DB_USER', 'test')
 os.environ.setdefault('DB_PASSWORD', '')
 os.environ.setdefault('DB_NAME', 'test')
 os.environ.setdefault('DB_PORT', '3306')
-os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-testing')   # ADD THIS
-os.environ.setdefault('GITHUB_REPO', 'test-owner/test-repo')          # ADD THIS
+os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-testing')
+os.environ.setdefault('GITHUB_REPO', 'test-owner/test-repo')
 
 # Patch pymysql before app import so SQLAlchemy doesn't try to connect
 import pymysql
