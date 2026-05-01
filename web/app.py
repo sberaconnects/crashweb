@@ -319,7 +319,7 @@ def cores():
         tickets=_fetch_tickets())
 
 
-COREDUMPS_DIR = '/var/www/html/coredumps'
+COREDUMPS_DIR = app.config['COREDUMP_DIR']
 
 @app.route('/coredumps/<path:filepath>')
 def download_coredump(filepath):
@@ -395,22 +395,19 @@ def core_detail(core_id):
             sdk_ver = 'v' + m.group(1)
     # Check if SDK install is actively in progress (lock file present)
     _sdk_lock = sdk_ver and os.path.exists(os.path.join(_SDK_DIR, sdk_ver, '.installing'))
-    # Only truly installed when sysroot exists AND lock is gone
+    if _SDK_SYSROOT_SUBPATH:
+        _sdk_installed_path = os.path.join(_SDK_DIR, sdk_ver, _SDK_SYSROOT_SUBPATH)
+    else:
+        _sdk_installed_path = os.path.join(_SDK_DIR, sdk_ver)
     sdk_ready = (
         sdk_pending and sdk_ver is not None and not _sdk_lock and
-        os.path.isdir(os.path.join(_SDK_DIR, sdk_ver, _SYSROOT_SUBPATH))
+        os.path.isdir(_sdk_installed_path)
     )
     sdk_installing = bool(sdk_pending and sdk_ver is not None and _sdk_lock)
 
-    # SDK Artifactory URL for download
-    art_sdk_url = None
-    if core.clb_rev and sdk_ver:
-        art_ver = re.sub(r'^v', '', core.clb_rev).replace('-', '+')
-        art_sdk_url = (
-            'https://artifactory-ehv.ta.philips.com/artifactory/synergy-generic-rnd'
-            f'/sdk/philips-imx8mp-delta-transport/release'
-            f'/sdk-philips-imx8mp-delta-transport-{art_ver}.tar.gz'
-        )
+    sdk_download_url = None
+    if core.clb_rev and sdk_ver and _SDK_BASE_URL and _SDK_PACKAGE_NAME:
+        sdk_download_url = f'{_SDK_BASE_URL}/{_SDK_PACKAGE_NAME}-{sdk_ver}.tar.gz'
 
     ticket = _fetch_tickets().get(core.clc_bt_csum)
     # Plain-text backtrace for GitHub issue body — truncated to first 10 frames
@@ -420,7 +417,8 @@ def core_detail(core_id):
     return render_template('core_detail.html',
         core=core, backtrace=backtrace, journal=journal, related=related,
         related_total=related_total, no_sdk=no_sdk, sdk_pending=sdk_pending,
-        sdk_ready=sdk_ready, sdk_installing=sdk_installing, sdk_ver=sdk_ver, art_sdk_url=art_sdk_url, ticket=ticket,
+        sdk_ready=sdk_ready, sdk_installing=sdk_installing, sdk_ver=sdk_ver,
+        sdk_download_url=sdk_download_url, ticket=ticket,
         gh_bt_plain=gh_bt_plain)
 
 @app.route('/core/<int:core_id>/reprocess', methods=['POST'])
@@ -740,7 +738,6 @@ def analyze():
 
 
 # ── Ticket API ────────────────────────────────────────────────────────────────
-_GITHUB_ISSUE_BASE = 'https://github.com/philips-internal/synergy-base/issues'
 
 
 def _fetch_tickets():
@@ -755,11 +752,11 @@ def _fetch_tickets():
 
 
 def _github_url(issue):
-    """Return GitHub issue URL if issue is numeric, else return as-is."""
     issue = (issue or '').strip()
-    if re.match(r'^\d+$', issue):
-        return f'{_GITHUB_ISSUE_BASE}/{issue}'
-    return None
+    github_repo = app.config.get('GITHUB_REPO', '')
+    if not github_repo or not re.match(r'^\d+$', issue):
+        return None
+    return f'https://github.com/{github_repo}/issues/{issue}'
 
 
 app.jinja_env.globals['github_url'] = _github_url
@@ -796,10 +793,10 @@ def ticket_api():
 
 
 # ── SDK Management API ────────────────────────────────────────────────────────
-_SDK_DIR = os.environ.get('SDK_DIR', '/var/www/sdks')
-_ART_BASE = 'https://artifactory-ehv.ta.philips.com/artifactory/synergy-generic-rnd/sdk/philips-imx8mp-delta-transport/release'
-_ART_LIST_API = 'https://artifactory-ehv.ta.philips.com/artifactory/api/storage/synergy-generic-rnd/sdk/philips-imx8mp-delta-transport/release'
-_SYSROOT_SUBPATH = 'sysroots/cortexa53-crypto-mgl-linux'
+_SDK_DIR          = app.config['SDK_DIR']
+_SDK_BASE_URL     = app.config['SDK_BASE_URL']
+_SDK_PACKAGE_NAME = app.config['SDK_PACKAGE_NAME']
+_SDK_SYSROOT_SUBPATH = app.config['SDK_SYSROOT_SUBPATH']
 
 
 def _evict_sdks_for_space(needed_bytes: int, keep_version: str):
@@ -818,7 +815,10 @@ def _installed_sdks():
     for entry in os.scandir(_SDK_DIR):
         if not entry.is_dir() or not entry.name.startswith('v'):
             continue
-        sysroot = os.path.join(entry.path, _SYSROOT_SUBPATH)
+        if _SDK_SYSROOT_SUBPATH:
+            sysroot = os.path.join(entry.path, _SDK_SYSROOT_SUBPATH)
+        else:
+            sysroot = entry.path
         lock = os.path.join(entry.path, '.installing')
         pid_file = os.path.join(entry.path, '.installing.pid')
         # Auto-clean stale lock: sysroot present AND install process is dead
