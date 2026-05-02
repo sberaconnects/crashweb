@@ -22,20 +22,20 @@
 </div>
 
 <div class="card" style="margin-bottom:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d0d7de;padding-bottom:12px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #4c566a;padding-bottom:12px;margin-bottom:16px">
         <h2 style="margin:0;border:none;padding:0">SDK Versions</h2>
         <a href="{{ url_for('revisions') }}" style="font-size:13px">View Revisions &rarr;</a>
     </div>
     <div id="sdk-status-body" style="font-size:0.88rem;padding:4px 0">
-        <span style="color:#656d76;font-style:italic">Checking SDK status&hellip;</span>
+        <span style="color:#d8dee9;font-style:italic">Checking SDK status&hellip;</span>
     </div>
-    <div style="border-top:1px solid #d0d7de;margin-top:10px;padding-top:8px;display:flex;align-items:center;gap:8px;font-size:0.82rem;background:#f6f8fa;margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px;padding-bottom:8px">
-        <span style="color:#656d76">Auto-install (midnight &amp; reboot):</span>
-        <span id="sdk-autolog-summary" style="color:#656d76;font-style:italic">checking&hellip;</span>
+    <div style="border-top:1px solid #4c566a;margin-top:10px;padding-top:8px;display:flex;align-items:center;gap:8px;font-size:0.82rem;background:#3b4252;margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px;padding-bottom:8px">
+        <span style="color:#d8dee9">Auto-install (midnight &amp; reboot):</span>
+        <span id="sdk-autolog-summary" style="color:#d8dee9;font-style:italic">checking&hellip;</span>
         <button onclick="document.getElementById('sdk-autolog-full').style.display=document.getElementById('sdk-autolog-full').style.display==='none'?'block':'none'" class="btn-ghost btn-sm" style="margin-left:auto">&#128196; Log</button>
     </div>
     <div id="sdk-autolog-full" style="display:none;padding:8px 20px 0">
-        <pre id="sdk-autolog-body" style="margin:0;font-size:0.75rem;max-height:120px;overflow:auto;white-space:pre-wrap;color:#656d76"></pre>
+        <pre id="sdk-autolog-body" style="margin:0;font-size:0.75rem;max-height:120px;overflow:auto;white-space:pre-wrap;color:#d8dee9"></pre>
     </div>
 </div>
 
@@ -49,7 +49,7 @@
             <tr>
                 <td class="truncate"><a href="{{ url_for('cores', binary=b.binary) }}">{{ b.binary.split('/')[-1] if b.binary else '' }}</a></td>
                 <td style="white-space:nowrap">
-                    {% if b.systematic %}<span class="badge" style="background:#dc3545;color:#fff" title="Same crash signature seen on multiple devices">&#9888; Systematic</span>{% endif %}
+                    {% if b.systematic %}<span class="badge" style="background:#bf616a;color:#fff" title="Same crash signature seen on multiple devices">&#9888; Systematic</span>{% endif %}
                     {% if b.cause.label %}<span class="badge" style="background:{{ b.cause.color }};color:#fff">{{ b.cause.label }}</span>{% endif %}
                 </td>
                 <td style="text-align:right">{{ "{:,}".format(b.cnt) }}</td>
@@ -60,7 +60,7 @@
     </div>
 
     <div class="card">
-        <h2>Crashes per Device <span style="font-size:12px; font-weight:normal; color:#656d76;">({{ newest_rev }})</span></h2>
+        <h2>Crashes per Device <span style="font-size:12px; font-weight:normal; color:#d8dee9;">({{ newest_rev }})</span></h2>
         <table>
             <thead><tr><th>Device</th><th style="text-align:right">Crashes</th></tr></thead>
             <tbody>
@@ -85,7 +85,7 @@
             <tbody>
             {% for r in recent %}
             {% set t = tickets.get(r[8]) %}
-            <tr{% if t %} style="background:#f6f8fa"{% endif %}>
+            <tr{% if t %} style="background:#434c5e"{% endif %}>
                 <td><a href="{{ url_for('core_detail', core_id=r[0]) }}">#{{ r[0] }}</a></td>
                 <td>{{ r[4] }}</td>
                 <td>{{ r[1] }}</td>
@@ -99,7 +99,7 @@
                 <td>
                 {% if t %}
                     {% set url = github_url(t.issue) %}
-                    {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#0d6efd;color:#fff;text-decoration:none">#{{ t.issue }}</a>{% else %}<span class="badge" style="background:#0d6efd;color:#fff">{{ t.issue }}</span>{% endif %}
+                    {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#5e81ac;color:#fff;text-decoration:none">#{{ t.issue }}</a>{% else %}<span class="badge" style="background:#5e81ac;color:#fff">{{ t.issue }}</span>{% endif %}
                 {% endif %}
                 </td>
             </tr>
@@ -142,11 +142,11 @@
         var failed = log.indexOf('FAILED') !== -1;
         var done = !failed && log.indexOf('Done.') !== -1;
         var statusHtml = done
-            ? '<span class="badge" style="background:#198754;color:#fff">&#10003; Installation complete</span>'
+            ? '<span class="badge" style="background:#a3be8c;color:#2e3440">&#10003; Installation complete</span>'
             : (failed
-                ? '<span class="badge" style="background:#dc3545;color:#fff">Failed</span>'
-                : '<span style="color:#0969da;font-weight:600">Installing&hellip;</span>');
-        el.innerHTML = statusHtml + '<pre style="margin:4px 0 0;font-size:0.75rem;max-height:120px;overflow:auto;white-space:pre-wrap;color:#656d76">' + log.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre>';
+                ? '<span class="badge" style="background:#bf616a;color:#fff">Failed</span>'
+                : '<span style="color:#5e81ac;font-weight:600">Installing&hellip;</span>');
+        el.innerHTML = statusHtml + '<pre style="margin:4px 0 0;font-size:0.75rem;max-height:120px;overflow:auto;white-space:pre-wrap;color:#d8dee9">' + log.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre>';
         var pre = el.querySelector('pre');
         if (pre) pre.scrollTop = pre.scrollHeight;
     }
@@ -163,24 +163,24 @@
         var html = '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:4px 0">';
         var readyInstalled = installed.filter(function(s) { return s.installed; });
         if (readyInstalled.length === 0 && installing.length === 0) {
-            html += '<span style="color:#656d76;font-style:italic">No SDKs installed</span>';
+            html += '<span style="color:#d8dee9;font-style:italic">No SDKs installed</span>';
         } else {
             readyInstalled.slice(0, 2).forEach(function(s) {
                 html += '<div style="display:flex;align-items:center;gap:4px">';
                 html += '<span style="font-weight:600;font-family:monospace">' + s.version + '</span>';
-                html += '<span class="badge" style="background:#198754;color:#fff;margin-left:4px">&#10003; Installed</span>';
+                html += '<span class="badge" style="background:#a3be8c;color:#2e3440;margin-left:4px">&#10003; Installed</span>';
                 html += '</div>';
             });
         }
         if (!hasRemote) {
-            html += '<span style="color:#656d76;font-style:italic;margin-left:12px">Remote SDK install not configured (set SDK_BASE_URL)</span>';
+            html += '<span style="color:#d8dee9;font-style:italic;margin-left:12px">Remote SDK install not configured (set SDK_BASE_URL)</span>';
         }
         html += '</div>';
         // Install log — shown below installed SDKs only while actively installing
         if (installing.length > 0) {
             var iv = installing[0].version;
-            html += '<div style="margin-top:8px;padding:8px;background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;font-size:0.85rem">';
-            html += '<strong>Installing ' + iv + ':</strong> <span id="sdk-install-log-' + iv + '"><span style="color:#0969da">Fetching log&hellip;</span></span>';
+            html += '<div style="margin-top:8px;padding:8px;background:#3b4252;border:1px solid #4c566a;border-radius:6px;font-size:0.85rem">';
+            html += '<strong>Installing ' + iv + ':</strong> <span id="sdk-install-log-' + iv + '"><span style="color:#5e81ac">Fetching log&hellip;</span></span>';
             html += '</div>';
         }
         el.innerHTML = html;
@@ -194,7 +194,7 @@
     function refreshSdk() {
         fetch('{{ url_for("sdk_api") }}?action=status').then(function(r) { return r.json(); }).then(renderSdkStatus).catch(function() {
             var el = document.getElementById('sdk-status-body');
-            if (el) el.innerHTML = '<span style="color:#dc3545">SDK status unavailable</span>';
+            if (el) el.innerHTML = '<span style="color:#bf616a">SDK status unavailable</span>';
         });
     }
     window.installSdk = function(version) {
@@ -224,7 +224,7 @@
             var body = document.getElementById('sdk-autolog-body');
             if (body) body.textContent = log || 'No auto-install log yet.';
             if (!summary) return;
-            if (!log) { summary.textContent = 'no runs yet'; summary.style.color = '#656d76'; return; }
+            if (!log) { summary.textContent = 'no runs yet'; summary.style.color = '#d8dee9'; return; }
             var lines = log.split('\n');
             var last = lines[lines.length - 1] || '';
             var tsMatch = null;
@@ -234,15 +234,15 @@
             }
             var prefix = tsMatch || 'unknown time';
             if (last.indexOf('ERROR') !== -1 || last.indexOf('FAILED') !== -1) {
-                summary.textContent = prefix + ' \u2014 FAILED'; summary.style.color = '#dc3545'; summary.style.fontWeight = '600';
+                summary.textContent = prefix + ' \u2014 FAILED'; summary.style.color = '#bf616a'; summary.style.fontWeight = '600';
             } else if (last.indexOf('completed successfully') !== -1 || last.indexOf('Done.') !== -1) {
-                summary.textContent = prefix + ' \u2014 installed OK'; summary.style.color = '#198754'; summary.style.fontWeight = '600';
+                summary.textContent = prefix + ' \u2014 installed OK'; summary.style.color = '#a3be8c'; summary.style.fontWeight = '600';
             } else if (last.indexOf('Nothing to do') !== -1 || last.indexOf('Already installed') !== -1) {
-                summary.textContent = prefix + ' \u2014 up-to-date'; summary.style.color = '#198754'; summary.style.fontWeight = '';
+                summary.textContent = prefix + ' \u2014 up-to-date'; summary.style.color = '#a3be8c'; summary.style.fontWeight = '';
             } else {
                 var msgM = last.match(/\[[^\]]+\]\s*(.*)/);
                 summary.textContent = prefix + (msgM && msgM[1] ? ' \u2014 ' + msgM[1].substring(0, 50) : '');
-                summary.style.color = '#656d76'; summary.style.fontWeight = '';
+                summary.style.color = '#d8dee9'; summary.style.fontWeight = '';
             }
         }).catch(function() {});
     }
