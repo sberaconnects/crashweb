@@ -6,84 +6,94 @@
     <title>{% block title %}CrashWeb{% endblock %}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; background: #2e3440; color: #eceff4; font-size: 14px; }
+        body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: #1a1b26; color: #c0caf5; font-size: 14px; display: flex; min-height: 100vh; }
 
-        /* --- Nav --- */
-        nav { background: #242933; padding: 0 24px; display: flex; align-items: center; gap: 0; }
-        nav a.brand { color: #fff; font-weight: 600; font-size: 15px; padding: 12px 20px 12px 0; margin-right: 4px; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-        nav a.brand:hover { color: #fff; text-decoration: none; }
-        nav a.nav-link { color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: color 0.1s, background 0.1s; }
-        nav a.nav-link:hover { color: #fff; text-decoration: none; background: rgba(255,255,255,0.06); }
-        nav a.nav-link.active { color: #fff; background: #4c566a; }
+        /* --- Sidebar --- */
+        .sidebar { width: 220px; min-height: 100vh; background: #16161e; border-right: 1px solid #414868; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+        .sidebar-brand { padding: 20px 16px 16px; display: flex; align-items: center; gap: 10px; color: #c0caf5; font-weight: 700; font-size: 15px; text-decoration: none; border-bottom: 1px solid #414868; margin-bottom: 8px; }
+        .sidebar-brand:hover { color: #c0caf5; text-decoration: none; }
+        .sidebar-brand svg { color: #7aa2f7; flex-shrink: 0; }
+        .sidebar-nav { flex: 1; padding: 4px 0; }
+        .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: #565f89; text-decoration: none; font-size: 13px; font-weight: 500; border-left: 3px solid transparent; transition: color 0.1s, background 0.1s, border-color 0.1s; }
+        .sidebar-nav a:hover { color: #c0caf5; background: rgba(122,162,247,0.06); text-decoration: none; }
+        .sidebar-nav a.active { color: #7aa2f7; background: rgba(122,162,247,0.08); border-left-color: #7aa2f7; }
+        .sidebar-nav a svg { opacity: 0.7; flex-shrink: 0; }
+        .sidebar-nav a.active svg { opacity: 1; }
+        .sidebar-footer { padding: 12px 16px; border-top: 1px solid #414868; font-size: 11px; color: #414868; }
 
-        /* --- Layout --- */
-        .container { margin: 20px auto; padding: 0 24px; }
+        /* --- Main content --- */
+        .main { margin-left: 220px; flex: 1; padding: 28px 32px; min-width: 0; }
+
+        /* --- Page header --- */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #c0caf5; }
+        h1 { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
 
         /* --- Breadcrumb --- */
-        .breadcrumb { margin-bottom: 16px; font-size: 13px; color: #d8dee9; }
-        .breadcrumb a { color: #5e81ac; text-decoration: none; }
+        .breadcrumb { margin-bottom: 16px; font-size: 13px; color: #565f89; }
+        .breadcrumb a { color: #7aa2f7; text-decoration: none; }
         .breadcrumb a:hover { text-decoration: underline; }
 
         /* --- Cards --- */
-        .card { background: #3b4252; border-radius: 6px; border: 1px solid #4c566a; padding: 20px; margin-bottom: 20px; }
-        .card > h2:not(.process-header) { font-size: 16px; color: #eceff4; border-bottom: 1px solid #4c566a; padding-bottom: 12px; margin-bottom: 16px; }
-        .card > h2.process-header { font-size: 16px; color: #eceff4; }
-        h1 { font-size: 22px; margin-bottom: 16px; }
+        .card { background: #24283b; border-radius: 8px; border: 1px solid #414868; padding: 20px; margin-bottom: 20px; }
+        .card > h2:not(.process-header) { font-size: 11px; color: #565f89; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; border-bottom: 1px solid #414868; padding-bottom: 10px; margin-bottom: 16px; }
+        .card > h2.process-header { font-size: 11px; color: #565f89; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
 
         /* --- Tables --- */
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #4c566a; }
-        th { background: #3b4252; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #d8dee9; position: sticky; top: 0; white-space: nowrap; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #414868; }
+        th { background: #24283b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #565f89; position: sticky; top: 0; white-space: nowrap; }
         tbody tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background: #434c5e; }
+        tbody tr:hover { background: #2f3354; }
         .table-wrapper { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
 
         /* --- Links --- */
-        a { color: #5e81ac; text-decoration: none; }
+        a { color: #7aa2f7; text-decoration: none; }
         a:hover { text-decoration: underline; }
 
         /* --- Inputs --- */
-        textarea { width: 100%; min-height: 100px; padding: 12px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 13px; border: 1px solid #4c566a; border-radius: 6px; resize: vertical; background: #3b4252; color: #eceff4; }
-        textarea:focus { outline: 2px solid #5e81ac; outline-offset: 0; }
-        input[type="text"], select { padding: 6px 10px; border: 1px solid #4c566a; border-radius: 6px; font-size: 13px; background: #3b4252; color: #eceff4; }
-        input[type="text"]:focus, select:focus { outline: 2px solid #5e81ac; outline-offset: 0; }
+        textarea { width: 100%; min-height: 100px; padding: 12px; font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 13px; border: 1px solid #414868; border-radius: 6px; resize: vertical; background: #24283b; color: #c0caf5; }
+        textarea:focus { outline: 2px solid #7aa2f7; outline-offset: 0; }
+        input[type="text"], select { padding: 6px 10px; border: 1px solid #414868; border-radius: 6px; font-size: 13px; background: #24283b; color: #c0caf5; }
+        input[type="text"]:focus, select:focus { outline: 2px solid #7aa2f7; outline-offset: 0; }
 
         /* --- Buttons --- */
-        button, .btn { background: #5e81ac; color: #eceff4; border: 1px solid rgba(0,0,0,0.3); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-block; text-decoration: none; }
-        button:hover, .btn:hover { background: #81a1c1; text-decoration: none; }
+        button, .btn { background: #7aa2f7; color: #1a1b26; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-block; text-decoration: none; transition: background 0.1s; }
+        button:hover, .btn:hover { background: #89b4fa; text-decoration: none; }
         .btn-sm { padding: 4px 10px; font-size: 12px; }
-        .btn-ghost { background: #434c5e; color: #eceff4; border: 1px solid #4c566a; }
-        .btn-ghost:hover { background: #4c566a; }
-        .btn-danger { background: #bf616a; border-color: transparent; color: #fff; }
-        .btn-danger:hover { background: #a0505a; }
+        .btn-ghost { background: #2f3354; color: #c0caf5; border: 1px solid #414868; }
+        .btn-ghost:hover { background: #414868; }
+        .btn-danger { background: #f7768e; color: #1a1b26; border: none; }
+        .btn-danger:hover { background: #ff8fa3; }
 
         /* --- Error --- */
-        .error { background: rgba(191,97,106,0.15); border: 1px solid rgba(191,97,106,0.5); color: #bf616a; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+        .error { background: rgba(247,118,142,0.12); border: 1px solid rgba(247,118,142,0.4); color: #f7768e; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
 
         /* --- Pagination --- */
         .pagination { margin-top: 16px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-        .pagination a, .pagination span { padding: 5px 10px; border: 1px solid #4c566a; border-radius: 6px; text-decoration: none; color: #eceff4; font-size: 13px; }
-        .pagination a:hover { background: #434c5e; text-decoration: none; }
-        .pagination .active { background: #5e81ac; color: #fff; border-color: #5e81ac; }
+        .pagination a, .pagination span { padding: 5px 10px; border: 1px solid #414868; border-radius: 6px; text-decoration: none; color: #c0caf5; font-size: 13px; }
+        .pagination a:hover { background: #2f3354; text-decoration: none; }
+        .pagination .active { background: #7aa2f7; color: #1a1b26; border-color: #7aa2f7; font-weight: 600; }
 
         /* --- Meta --- */
-        .meta { color: #d8dee9; font-size: 13px; margin-bottom: 12px; }
+        .meta { color: #565f89; font-size: 13px; margin-bottom: 12px; }
 
         /* --- Truncate --- */
         td.truncate { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         td.truncate:hover { white-space: normal; word-break: break-all; }
 
         /* --- Stat cards --- */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
-        .stat-card { background: #3b4252; border-radius: 6px; border: 1px solid #4c566a; padding: 20px; text-align: center; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
-        .stat-card:hover { background: #434c5e; border-color: #81a1c1; text-decoration: none; }
-        .stat-card .stat-icon { color: #d8dee9; margin-bottom: 8px; display: flex; justify-content: center; }
-        .stat-card .number { font-size: 32px; font-weight: 700; color: #eceff4; }
-        .stat-card .label { font-size: 13px; color: #d8dee9; margin-top: 4px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #24283b; border-radius: 8px; border: 1px solid #414868; padding: 20px; text-align: center; cursor: pointer; transition: background 0.1s, border-color 0.1s; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent-bar, #7aa2f7); }
+        .stat-card:hover { background: #2f3354; border-color: #7aa2f7; text-decoration: none; }
+        .stat-card .stat-icon { color: #565f89; margin-bottom: 10px; display: flex; justify-content: center; }
+        .stat-card .number { font-size: 40px; font-weight: 700; color: #c0caf5; line-height: 1; }
+        .stat-card .label { font-size: 11px; color: #565f89; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
 
         /* --- Filters --- */
         .filters { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 16px; }
-        .filters label { font-size: 12px; font-weight: 600; color: #d8dee9; display: block; margin-bottom: 3px; }
+        .filters label { font-size: 12px; font-weight: 600; color: #565f89; display: block; margin-bottom: 3px; }
 
         /* --- Signal badges (semantic — unchanged) --- */
         .signal-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #dfe6e9; color: #555; }
@@ -98,23 +108,23 @@
 
         /* --- Pre/Code --- */
         .pre-wrap { position: relative; }
-        .pre-wrap .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.08); color: #eceff4; border: 1px solid rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.85; transition: opacity 0.15s, background 0.15s; }
-        .pre-wrap .copy-btn:hover { opacity: 1; background: rgba(255,255,255,0.15); }
-        .pre-wrap .copy-btn.copied { background: #a3be8c; border-color: #a3be8c; color: #2e3440; opacity: 1; }
-        pre { background: #242933; color: #eceff4; padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 13px; line-height: 1.5; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
-        pre .line-no { color: #d8dee9; user-select: none; display: inline-block; width: 40px; text-align: right; margin-right: 16px; }
+        .pre-wrap .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.06); color: #c0caf5; border: 1px solid rgba(255,255,255,0.12); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.8; transition: opacity 0.15s, background 0.15s; }
+        .pre-wrap .copy-btn:hover { opacity: 1; background: rgba(255,255,255,0.12); }
+        .pre-wrap .copy-btn.copied { background: #9ece6a; border-color: #9ece6a; color: #1a1b26; opacity: 1; }
+        pre { background: #16161e; color: #c0caf5; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; border: 1px solid #414868; }
+        pre .line-no { color: #414868; user-select: none; display: inline-block; width: 40px; text-align: right; margin-right: 16px; }
 
         /* --- Tabs --- */
-        .tabs { display: flex; border-bottom: 1px solid #4c566a; margin-bottom: 16px; }
-        .tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; color: #d8dee9; }
-        .tab.active { color: #eceff4; border-bottom-color: #5e81ac; }
-        .tab:hover { color: #eceff4; }
+        .tabs { display: flex; border-bottom: 1px solid #414868; margin-bottom: 16px; }
+        .tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; color: #565f89; }
+        .tab.active { color: #c0caf5; border-bottom-color: #7aa2f7; }
+        .tab:hover { color: #c0caf5; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         /* --- Detail grid --- */
         .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .detail-grid .field-label { font-size: 11px; font-weight: 600; color: #d8dee9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-grid .field-label { font-size: 11px; font-weight: 600; color: #565f89; text-transform: uppercase; letter-spacing: 0.5px; }
         .detail-grid .field-value { font-size: 14px; margin-top: 2px; }
 
         /* --- Badges (semantic — unchanged) --- */
@@ -123,18 +133,36 @@
     </style>
 </head>
 <body>
-    <nav>
-        <a class="brand" href="{{ url_for('index') }}">
+    <aside class="sidebar">
+        <a class="sidebar-brand" href="{{ url_for('index') }}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             CrashWeb
         </a>
-        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Dashboard</a>
-        <a class="nav-link {% if request.endpoint in ('cores', 'core_detail') %}active{% endif %}" href="{{ url_for('cores') }}">Cores</a>
-        <a class="nav-link {% if request.endpoint in ('devices', 'device_detail') %}active{% endif %}" href="{{ url_for('devices') }}">Devices</a>
-        <a class="nav-link {% if request.endpoint == 'revisions' %}active{% endif %}" href="{{ url_for('revisions') }}">Revisions</a>
-        <a class="nav-link {% if request.endpoint == 'analyze' %}active{% endif %}" href="{{ url_for('analyze') }}">Analysis</a>
-    </nav>
-    <div class="container">
+        <nav class="sidebar-nav">
+            <a class="{% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Overview
+            </a>
+            <a class="{% if request.endpoint in ('cores', 'core_detail') %}active{% endif %}" href="{{ url_for('cores') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                Crashes
+            </a>
+            <a class="{% if request.endpoint in ('devices', 'device_detail') %}active{% endif %}" href="{{ url_for('devices') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                Devices
+            </a>
+            <a class="{% if request.endpoint == 'revisions' %}active{% endif %}" href="{{ url_for('revisions') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                Firmware
+            </a>
+            <a class="{% if request.endpoint == 'analyze' %}active{% endif %}" href="{{ url_for('analyze') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Patterns
+            </a>
+        </nav>
+        <div class="sidebar-footer">CrashWeb</div>
+    </aside>
+    <div class="main">
         {% block content %}{% endblock %}
     </div>
     {% block scripts %}{% endblock %}
