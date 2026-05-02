@@ -2,17 +2,31 @@
 
 A self-hosted web UI for collecting, browsing, and analyzing coredumps from embedded Linux devices.
 
+![Overview](docs/screenshots/overview.png)
+
+**Crashes** — filterable coredump list with signal badges and ticket tracking
+
+![Crashes](docs/screenshots/crashes.png)
+
+**Firmware** — SDK install status per SW revision
+
+![Firmware](docs/screenshots/firmware.png)
+
+**Patterns** — crash grouping by backtrace signature, systematic bug detection
+
+![Patterns](docs/screenshots/patterns.png)
+
 ## Features
 
 | Page | URL | Description |
-|------|-----|-------------|
-| Dashboard | `/` | Stats, top crashing binaries with cause classification, recent coredumps |
-| Cores | `/cores` | Filterable list by device, revision, signal, binary, backtrace checksum |
+| ---- | --- | ----------- |
+| Overview | `/` | Stats, top crashing binaries with cause classification, recent coredumps |
+| Crashes | `/cores` | Filterable list by device, revision, signal, binary, backtrace checksum |
 | Core detail | `/core/<id>` | Metadata, backtrace, journal, related crashes, ticket marking, GitHub issue creation |
 | Devices | `/devices` | All known devices with crash counts |
 | Device detail | `/device/<id>` | Per-device coredump list |
-| Revisions | `/revisions` | All SW revisions with crash counts and SDK install status |
-| Analysis | `/analyze` | Crash grouping by backtrace signature — systematic bug detection, cause badges |
+| Firmware | `/revisions` | All SW revisions with crash counts and SDK install status |
+| Patterns | `/analyze` | Crash grouping by backtrace signature — systematic bug detection, cause badges |
 
 Key capabilities:
 
