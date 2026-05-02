@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Revisions · CrashWeb{% endblock %}
+{% block title %}Firmware · CrashWeb{% endblock %}
 {% block content %}
-<h1>Revisions</h1>
+<h1>Firmware</h1>
 <div class="card">
     <table>
         <thead>
@@ -17,9 +17,9 @@
             <td>
                 {% if r[4] is not none %}
                     {% if r[5] %}
-                    <span style="color:#198754;font-weight:600">&#10003; Installed</span>
+                    <span style="color:#9ece6a;font-weight:600">&#10003; Installed</span>
                     {% else %}
-                    <button class="btn btn-sm sdk-install-btn" style="background:#fd7e14"
+                    <button class="btn btn-sm sdk-install-btn" style="background:#e0af68;color:#1a1b26"
                             data-sdk-ver="{{ r[4] }}" onclick="installSdk(this)">&#8659; Install {{ r[4] }}</button>
                     {% endif %}
                 {% endif %}
@@ -41,7 +41,7 @@ function cancelSdk(btn, sdkVer) {
     fd.append('version', sdkVer);
     fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(function(r) { return r.json(); }).then(function(d) {
         var cell = btn.closest('td');
-        cell.innerHTML = '<span style="color:#dc3545">&#10005; Cancelled</span>';
+        cell.innerHTML = '<span style="color:#f7768e">&#10005; Cancelled</span>';
     }).catch(function() {
         btn.disabled = false;
         btn.textContent = 'Cancel';
@@ -65,14 +65,14 @@ function installSdk(btn) {
         fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(function(r) { return r.json(); }).then(function(d) {
             if (d.error) {
                 btn.textContent = d.error;
-                btn.style.background = '#dc3545';
+                btn.style.background = '#f7768e';
                 btn.disabled = false;
             } else if (d.status === 'already_installed') {
-                btn.closest('td').innerHTML = '<span style="color:#198754;font-weight:600">&#10003; Installed</span>';
+                btn.closest('td').innerHTML = '<span style="color:#9ece6a;font-weight:600">&#10003; Installed</span>';
             } else {
                 var cell = btn.closest('td');
-                cell.innerHTML = '<span style="color:#fd7e14">&#9203; Installing\u2026</span>'
-                    + ' <button class="btn btn-sm" style="background:#dc3545" onclick="cancelSdk(this,' + JSON.stringify(sdkVer) + ')">&#10005; Cancel</button>';
+                cell.innerHTML = '<span style="color:#e0af68">&#9203; Installing\u2026</span>'
+                    + ' <button class="btn btn-sm" style="background:#f7768e" onclick="cancelSdk(this,' + JSON.stringify(sdkVer) + ')">&#10005; Cancel</button>';
             }
         });
     }).catch(function() {

@@ -2,7 +2,7 @@
 {% block title %}Core #{{ core.clc_id }} · CrashWeb{% endblock %}
 {% block content %}
 <div class="breadcrumb">
-    <a href="{{ url_for('cores') }}">Cores</a> › <strong>#{{ core.clc_id }}</strong>
+    <a href="{{ url_for('cores') }}">Crashes</a> › <strong>#{{ core.clc_id }}</strong>
 </div>
 
 {% set gh_title = "[Crash] " ~ core.clc_core_name ~ " — " ~ signal_name(core.clc_core_signal) ~ " (#" ~ core.clc_id ~ ")" %}
@@ -69,7 +69,7 @@
                 <a href="/{{ core.clc_core_file }}" class="btn btn-sm" style="margin-left:8px">Download core.gz</a>
                 {% endif %}
                 {% if sdk_download_url %}
-                <a href="{{ sdk_download_url }}" class="btn btn-sm" style="margin-left:4px;background:#4c566a">Download SDK</a>
+                <a href="{{ sdk_download_url }}" class="btn btn-sm" style="margin-left:4px;background:#414868">Download SDK</a>
                 {% endif %}
             </div>
         </div>
@@ -82,14 +82,14 @@
             <div class="field-value" id="ticket-area">
             {% if ticket %}
                 {% set url = github_url(ticket.issue) %}
-                {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#5e81ac;color:#fff;text-decoration:none;font-size:13px">#{{ ticket.issue }}</a>{% else %}<span class="badge" style="background:#5e81ac;color:#fff;font-size:13px">{{ ticket.issue }}</span>{% endif %}
-                {% if ticket.note %}<span style="margin-left:8px;color:#d8dee9">{{ ticket.note }}</span>{% endif %}
-                <button class="btn btn-sm" style="background:#bf616a;margin-left:12px" onclick="unmarkTicket()">Remove mark</button>
+                {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#7aa2f7;color:#fff;text-decoration:none;font-size:13px">#{{ ticket.issue }}</a>{% else %}<span class="badge" style="background:#7aa2f7;color:#fff;font-size:13px">{{ ticket.issue }}</span>{% endif %}
+                {% if ticket.note %}<span style="margin-left:8px;color:#565f89">{{ ticket.note }}</span>{% endif %}
+                <button class="btn btn-sm" style="background:#f7768e;margin-left:12px" onclick="unmarkTicket()">Remove mark</button>
             {% elif core.clc_bt_csum %}
                 <form id="ticket-form" style="display:inline-flex;gap:6px;align-items:center" onsubmit="markTicket();return false">
                     <input type="text" id="t-issue" placeholder="Issue # (e.g. 15884)" style="width:150px">
                     <input type="text" id="t-note" placeholder="Note (optional)" style="width:220px">
-                    <button type="submit" id="t-submit" class="btn btn-sm" style="background:#5e81ac">&#10003; Mark as analyzed</button>
+                    <button type="submit" id="t-submit" class="btn btn-sm" style="background:#7aa2f7">&#10003; Mark as analyzed</button>
                 </form>
             {% else %}
                 <span class="meta">No backtrace checksum — cannot mark</span>
@@ -108,27 +108,27 @@
 <div class="tab-content active" id="tab-backtrace">
     <div class="card">
         {% if no_sdk %}
-        <div style="padding:16px;background:rgba(235,203,139,0.12);border:1px solid rgba(235,203,139,0.4);border-radius:6px;display:flex;align-items:center;gap:12px;">
+        <div style="padding:16px;background:rgba(224,175,104,0.12);border:1px solid rgba(224,175,104,0.4);border-radius:6px;display:flex;align-items:center;gap:12px;">
             <span>&#9888; SDK <strong>{{ sdk_ver or '' }}</strong> is not installed &mdash; backtrace unavailable.</span>
             {% if sdk_ver %}
-            <span id="sdk-install-area"><button class="btn btn-sm" style="background:#ebcb8b;color:#2e3440" onclick="doInstall()">&#8659; Install SDK {{ sdk_ver }}</button></span>
+            <span id="sdk-install-area"><button class="btn btn-sm" style="background:#e0af68;color:#1a1b26" onclick="doInstall()">&#8659; Install SDK {{ sdk_ver }}</button></span>
             {% endif %}
         </div>
         {% elif sdk_pending %}
         {% if sdk_ready %}
-        <div style="padding:16px;background:rgba(163,190,140,0.12);border:1px solid rgba(163,190,140,0.4);border-radius:6px;display:flex;align-items:center;gap:12px;">
+        <div style="padding:16px;background:rgba(158,206,106,0.12);border:1px solid rgba(158,206,106,0.4);border-radius:6px;display:flex;align-items:center;gap:12px;">
             <span>&#10003; SDK <strong>{{ sdk_ver or '' }}</strong> is installed &mdash; backtrace not yet generated.</span>
-            <button id="reprocess-btn" class="btn btn-sm" style="background:#a3be8c;color:#2e3440" onclick="doReprocess()">&#9654; Process Now</button>
+            <button id="reprocess-btn" class="btn btn-sm" style="background:#9ece6a;color:#1a1b26" onclick="doReprocess()">&#9654; Process Now</button>
             <span id="reprocess-status"></span>
         </div>
         {% elif sdk_installing %}
-        <div style="padding:16px;background:rgba(136,192,208,0.12);border:1px solid rgba(136,192,208,0.4);border-radius:6px;">
+        <div style="padding:16px;background:rgba(122,162,247,0.1);border:1px solid rgba(122,162,247,0.3);border-radius:6px;">
             &#9203; SDK <strong>{{ sdk_ver or '' }}</strong> is being installed &mdash; backtrace will appear automatically once complete. Reload this page to check.
         </div>
         {% else %}
-        <div style="padding:16px;background:rgba(235,203,139,0.12);border:1px solid rgba(235,203,139,0.4);border-radius:6px;display:flex;align-items:center;gap:12px;">
+        <div style="padding:16px;background:rgba(224,175,104,0.12);border:1px solid rgba(224,175,104,0.4);border-radius:6px;display:flex;align-items:center;gap:12px;">
             <span>&#9888; SDK <strong>{{ sdk_ver or '' }}</strong> is not installed.</span>
-            <button id="install-sdk-btn" class="btn btn-sm" style="background:#ebcb8b;color:#2e3440;border:none" onclick="doInstallSdk()">&#11015; Install SDK</button>
+            <button id="install-sdk-btn" class="btn btn-sm" style="background:#e0af68;color:#1a1b26;border:none" onclick="doInstallSdk()">&#11015; Install SDK</button>
             <span id="install-sdk-status"></span>
         </div>
         {% endif %}
@@ -232,10 +232,10 @@ async function copyTextToClipboard(text) {
         {% if core.clc_bt_csum %}
         // Replace button with inline mark-as-analyzed prompt
         area.innerHTML =
-            '<span style="font-size:13px;color:#d8dee9;margin-right:6px">Issue created? Enter #:</span>'
-            + '<input id="gh-auto-issue" type="text" placeholder="e.g. 15884" style="width:90px;font-size:13px;padding:3px 6px;border:1px solid #4c566a;border-radius:4px">'
-            + ' <button class="btn btn-sm" style="background:#5e81ac" onclick="ghAutoMark()">&#10003; Mark as analyzed</button>'
-            + ' <button class="btn btn-sm" style="background:#4c566a" onclick="document.getElementById(\'gh-issue-area\').style.display=\'none\'">&#10005;</button>';
+            '<span style="font-size:13px;color:#565f89;margin-right:6px">Issue created? Enter #:</span>'
+            + '<input id="gh-auto-issue" type="text" placeholder="e.g. 15884" style="width:90px;font-size:13px;padding:3px 6px;border:1px solid #414868;border-radius:4px">'
+            + ' <button class="btn btn-sm" style="background:#7aa2f7" onclick="ghAutoMark()">&#10003; Mark as analyzed</button>'
+            + ' <button class="btn btn-sm" style="background:#414868" onclick="document.getElementById(\'gh-issue-area\').style.display=\'none\'">&#10005;</button>';
         setTimeout(() => { var i = document.getElementById('gh-auto-issue'); if (i) i.focus(); }, 50);
         {% endif %}
     });
@@ -306,7 +306,7 @@ window.doInstall = function() {
     fetch('{{ url_for("sdk_api") }}?action=status').then(r => r.json()).then(function(data) {
         var ver = {{ sdk_ver | tojson }};
         if (!data.has_remote) {
-            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#4c566a;color:#eceff4'>Remote SDK install not configured (set SDK_BASE_URL)</span>";
+            document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#414868;color:#c0caf5'>Remote SDK install not configured (set SDK_BASE_URL)</span>";
             return;
         }
         var fd = new FormData();
@@ -314,10 +314,10 @@ window.doInstall = function() {
         fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(r => r.json()).then(function(d) {
             if (d.status === 'started' || d.status === 'already_installing') {
                 document.getElementById('sdk-install-area').innerHTML =
-                    "<span class='badge' style='background:#ebcb8b;color:#2e3440'>&#9203; Installing\u2026</span>"
-                    + " <button class='btn btn-sm' style='background:#bf616a' onclick='doCancel()'>&#10005; Cancel</button>";
+                    "<span class='badge' style='background:#e0af68;color:#1a1b26'>&#9203; Installing\u2026</span>"
+                    + " <button class='btn btn-sm' style='background:#f7768e' onclick='doCancel()'>&#10005; Cancel</button>";
             } else if (d.status === 'already_installed') {
-                document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#a3be8c;color:#2e3440'>&#10003; Installed \u2014 re-run collector to generate backtrace</span>";
+                document.getElementById('sdk-install-area').innerHTML = "<span class='badge' style='background:#9ece6a;color:#1a1b26'>&#10003; Installed \u2014 re-run collector to generate backtrace</span>";
             } else {
                 alert('Error: ' + (d.error || JSON.stringify(d)));
                 if (btn) { btn.disabled = false; btn.textContent = '\u2B07 Install SDK {{ sdk_ver }}'; }
@@ -333,8 +333,8 @@ window.doCancel = function() {
     fd.append('action', 'cancel'); fd.append('version', ver);
     fetch('{{ url_for("sdk_api") }}', {method: 'POST', body: fd}).then(r => r.json()).then(function() {
         document.getElementById('sdk-install-area').innerHTML =
-            "<span class='badge' style='background:#4c566a;color:#eceff4'>&#10005; Cancelled &mdash; </span>"
-            + " <button class='btn btn-sm' style='background:#ebcb8b;color:#2e3440' onclick='doInstall()'>&#8659; Retry Install {{ sdk_ver }}</button>";
+            "<span class='badge' style='background:#414868;color:#c0caf5'>&#10005; Cancelled &mdash; </span>"
+            + " <button class='btn btn-sm' style='background:#e0af68;color:#1a1b26' onclick='doInstall()'>&#8659; Retry Install {{ sdk_ver }}</button>";
     }).catch(function() {
         if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.textContent = '&#10005; Cancel'; }
     });
@@ -355,13 +355,13 @@ window.doReprocess = function() {
             } else if (d.status === 'already_processing') {
                 status.innerHTML = '<span style="color:#0a3622">Already in progress \u2014 reload shortly.</span>';
             } else {
-                status.innerHTML = '<span style="color:#bf616a">' + (d.error || 'Unknown error') + '</span>';
+                status.innerHTML = '<span style="color:#f7768e">' + (d.error || 'Unknown error') + '</span>';
                 btn.disabled = false;
                 btn.textContent = '\u25b6 Process Now';
             }
         })
         .catch(function(e) {
-            status.innerHTML = '<span style="color:#bf616a">Request failed \u2014 ' + e + '</span>';
+            status.innerHTML = '<span style="color:#f7768e">Request failed \u2014 ' + e + '</span>';
             btn.disabled = false;
             btn.textContent = '\u25b6 Process Now';
         });
@@ -395,13 +395,13 @@ window.doInstallSdk = function() {
                 status.innerHTML = '<span style="color:#0a3622">SDK already installed \u2014 reloading\u2026</span>';
                 setTimeout(function() { location.reload(); }, 1500);
             } else {
-                status.innerHTML = '<span style="color:#bf616a">' + (d.error || 'Unknown error') + '</span>';
+                status.innerHTML = '<span style="color:#f7768e">' + (d.error || 'Unknown error') + '</span>';
                 btn.disabled = false;
                 btn.textContent = '\u11015 Install SDK';
             }
         })
         .catch(function(e) {
-            status.innerHTML = '<span style="color:#bf616a">Request failed \u2014 ' + e + '</span>';
+            status.innerHTML = '<span style="color:#f7768e">Request failed \u2014 ' + e + '</span>';
             btn.disabled = false;
             btn.textContent = '\u11015 Install SDK';
         });
