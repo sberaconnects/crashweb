@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Cores</h1>
 
-<div class="card" style="background:#f6f8fa">
+<div class="card" style="background:#3b4252">
     <form method="GET" action="{{ url_for('cores') }}">
         <div class="filters">
             <div>
@@ -52,7 +52,7 @@
         {% if f_bt_sig %}<input type="hidden" name="bt_sig" value="{{ f_bt_sig }}">{% endif %}
     </form>
     {% if f_process or f_bt_csum or f_bt_sig %}
-    <div style="margin-top: 12px; padding: 10px 14px; background: #fff8c5; border: 1px solid #d4a72c; border-radius: 6px; font-size: 13px;">
+    <div style="margin-top: 12px; padding: 10px 14px; background: rgba(235,203,139,0.12); border: 1px solid rgba(235,203,139,0.5); border-radius: 6px; font-size: 13px;">
         <strong>Crash signature filter:</strong>
         {% if f_process %}Process: <code>{{ f_process }}</code>{% endif %}
         {% if f_bt_csum %}Backtrace: <code>{{ f_bt_csum[:16] }}...</code>{% endif %}
@@ -72,7 +72,7 @@
             <tbody>
             {% for r in rows %}
             {% set t = tickets.get(r[5]) %}
-            <tr{% if t %} style="background:#f6f8fa"{% endif %}>
+            <tr{% if t %} style="background:#434c5e"{% endif %}>
                 <td><a href="{{ url_for('core_detail', core_id=r[0]) }}">#{{ r[0] }}</a></td>
                 <td style="white-space:nowrap">{{ r[4] }}</td>
                 <td>{{ r[1] }}</td>
@@ -87,7 +87,7 @@
                 <td>
                 {% if t %}
                     {% set url = github_url(t.issue) %}
-                    {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#0d6efd;color:#fff;text-decoration:none">#{{ t.issue }}</a>{% else %}<span class="badge" style="background:#0d6efd;color:#fff">{{ t.issue }}</span>{% endif %}
+                    {% if url %}<a href="{{ url }}" target="_blank" class="badge" style="background:#5e81ac;color:#fff;text-decoration:none">#{{ t.issue }}</a>{% else %}<span class="badge" style="background:#5e81ac;color:#fff">{{ t.issue }}</span>{% endif %}
                 {% elif r[5] %}
                     <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:2px 6px" onclick="openTicketForm(this,'{{ r[5] }}')">+ Mark</button>
                 {% endif %}
@@ -136,7 +136,7 @@ function openTicketForm(btn, btCsum) {
     td.innerHTML = '<input type="text" placeholder="Issue # (e.g. 15884)" style="width:90px;font-size:11px" id="ti-issue-'+btCsum+'">'  
         + ' <input type="text" placeholder="Note" style="width:110px;font-size:11px" id="ti-note-'+btCsum+'">'  
         + ' <button class="btn btn-sm" style="font-size:11px" onclick="saveTicket(\''+btCsum+'\')">✓</button>'  
-        + ' <button class="btn btn-sm" style="background:#6c757d;font-size:11px" onclick="location.reload()">✕</button>';
+        + ' <button class="btn btn-sm" style="background:#4c566a;font-size:11px" onclick="location.reload()">✕</button>';
     document.getElementById('ti-issue-'+btCsum).focus();
 }
 function saveTicket(btCsum) {
